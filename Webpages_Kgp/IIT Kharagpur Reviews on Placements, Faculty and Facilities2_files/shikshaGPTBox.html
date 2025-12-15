@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<!-- saved from url=(0981)https://www.shiksha.com/common/ChatPlugin/shikshaGPTBox?data=eyJkdEZsb3ciOnRydWUsImR0Rmxvd09iamVjdCI6eyJsaXN0aW5nc0RhdGEiOnsic3RhZ2UiOiJkZWxheWVkQ2hhdFJlY28ifX0sInBhZ2VDb250ZXh0Ijp7InBhZ2VJZGVudGlmaWVyIjoiVUlMUCIsInBhZ2VFbnRpdHlJZCI6Mjk5OSwicGFnZVRpdGxlIjoiSUlUIEtoYXJhZ3B1ciAoSUlULUtHUCk6IEN1dG9mZiwgUGxhY2VtZW50LCBGZWVzLCBBZG1pc3Npb24gMjAyNiwgUmFua2luZywgQ291cnNlcyIsImV4dHJhRGF0YSI6eyJjb3VudHJ5SWQiOlsyXSwic3RhdGVJZCI6WzEyN10sImNpdHlJZCI6WzEyNl0sIl9lbnRpdHlOYW1lIjoiSUlUIEtoYXJhZ3B1ciIsIl9lbnRpdHlUeXBlIjoiVUlMUCIsIl9yZXNUeXBlIjoiaW5zdGl0dXRlIiwiY2hpbGRQYWdlSWRlbnRpZmllciI6ImFsbFJldmlld3NQYWdlIiwib2RuSWRzIjpbXX0sImZsYWdzaGlwQ291cnNlRGF0YSI6eyJleHRyYURhdGEiOnsiaGllcmFyY2h5Ijp7IjAiOnsic3RyZWFtSWQiOjIsInN1YnN0cmVhbUlkIjowLCJzcGVjaWFsaXphdGlvbklkIjoxMDgsInByaW1hcnlIaWVyYXJjaHkiOjF9fSwiZmxhZ3NoaXBDb3Vyc2VJZCI6Nzk3OCwiYmFzZUNvdXJzZUlkIjpbMTBdLCJlZHVjYXRpb25UeXBlIjpbMjBdLCJkZWxpdmVyeU1ldGhvZCI6WzMzXSwiY3JlZGVudGlhbCI6WzldLCJsZXZlbCI6WzE0XX19LCJ1c2VyQmFzZUNvdXJzZUlkcyI6WzEwXX19 -->
+<html lang="en" class="fullheight"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  
+  <title>Shiksha GPT</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2">
+  <meta name="description" content="Shiksha GPT">
+  
+  <link rel="preconnect" href="https:">
+  <link rel="preconnect" href="https://js.shiksha.ws/">
+  <link rel="dns-prefetch" href="https:">
+  <link rel="dns-prefetch" href="https://js.shiksha.ws/">  
+  <link rel="preconnect" href="https://fonts.googleapis.com/">
+  <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
+  
+  <!-- External CDN optimizations -->
+  <link rel="dns-prefetch" href="https://unpkg.com/">
+  <link rel="dns-prefetch" href="https://apis.google.com/">
+  <link rel="dns-prefetch" href="https://cdn.jsdelivr.net/">
+  <link rel="dns-prefetch" href="https://connect.facebook.net/">
+  
+  <link rel="preconnect" href="https://unpkg.com/" crossorigin="">
+  <link rel="preconnect" href="https://apis.google.com/" crossorigin="">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net/" crossorigin="">
+  <link rel="preconnect" href="https://connect.facebook.net/" crossorigin="">
+  
+  <style type="text/css">
+    *{margin:0;padding:0;border:0;font-family: "Inter", sans-serif;box-sizing:border-box}
+    body{font-size:15px;line-height:21px;overflow:hidden;height:100%;width:100%}
+    p{margin-bottom:8px}
+    div#chat-window *::-webkit-scrollbar,.hide {display: none; }
+    
+    /* LCP Optimization - Input Field */
+    .chat-input {
+      font-display: swap;
+      contain: layout style paint;
+      will-change: auto;
+    }
+    
+    .chat-input.loading {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+    
+    .chat-input:not(.loading) {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    
+    /* LCP Optimization - Action Heading */
+    .action-heading {
+      font-display: swap;
+      contain: layout style paint;
+      will-change: auto;
+      font-size: 14px;
+      line-height: 1.4;
+      color: #000;
+      margin: 0;
+      padding: 0;
+    }
+    .fullheight{height:100%;display:flex;flex-direction:column;justify-content:space-between}
+    .conversation-area{height:100%;box-sizing:border-box;overflow:auto;background-color:#fafafa;background-blend-mode:multiply;padding:0px 16px 65px}
+    .input-box{height:48px;position:relative;box-shadow:0 -2px 7px 0 rgba(0,0,0,0.12);box-shadow:none;border-radius:50px;padding:1px;width:100%;gap:8px;background:linear-gradient(to right,#3acfd5 0%,#3a4ed5 100%);background:#eee}
+    input:focus + .send-button circle{fill:#008489}
+    .inputElemCont{width:100%;height:100%;background:#fff;border-radius:50px;overflow:hidden;padding:0 0px 0 16px;background:#f0f0f0}
+    .send-button{position:relative;cursor:pointer;padding:10px}
+    .send-button > svg {height: 34px;width: 34px;}
+    .chat-input{display:block;width:100%;font-size:14px;border:none;box-sizing:border-box;outline:none;height:100%;background:transparent;color:#000}
+    .inputControlBox {gap: 8px;padding: 12px 16px 24px;box-shadow: 0px 2px 24px -14px #eee;position: relative;z-index: 2;transition: all .2s linear;opacity: 1;}
+    .disclaimerText{font-size:9px;color:#666;position:absolute;bottom:-16px;left:16px;right:16px;text-align:center;line-height:12px}
+    .flxBox{display:flex;width:100%}
+    .iflxBox{display:inline-flex}
+    .mA{align-items:center}
+    .cA{justify-content:center}
+    .botui-message{min-height:30px;margin:0 0 12px}
+    .botui-message:after{display:block;content:"";clear:both}
+    .botui-message-content{padding:12px 16px;border-radius:0;color:#000;background:#f5f5f5;display:inline-block;position:relative;line-height: 23px;}
+    .botui-message-content.human > span {padding-left: 42px;display: block;}
+    .botui-message-content.human{animation:replyAnim .4s cubic-bezier(.175,.885,.32,1.275);width:100%;border-top:1px solid #eee;background:none;color:#000;font-size:20px;margin-top:16px;float:right;line-height:28px}
+    .botui-message-content.human.text:after,.botui-message-content.human.html:after{content:'';display:block;width:60px;height:4px;position:relative;background:#ccc;margin-top:9px;border-radius:50px;left:42px}
+    .botui-message-content.text{background:none}
+    .botui-actions-buttons:not(.inlineActions) .button-wrap{display:flex;gap:12px}
+    .botui-actions-buttons:not(.inlineActions) .button-wrap button.botui-actions-buttons-button{white-space:nowrap;padding:8px 16px;border-radius:15px;cursor:pointer;border:1px solid #cacaca;background:#fff;color:#4a4a4a}
+    .botui-actions-buttons:not(.inlineActions) button.botui-actions-buttons-button:hover {border: 1px solid #008489;color: #008489;}
+    .botui-actions-buttons:not(.inlineActions){position: absolute;z-index: 3;bottom: 82px;width: 100%;overflow: auto;padding: 12px 0 0px 16px;margin-left: -16px;background: #fafafa;}
+    .dragging.botui-actions-buttons:not(.inlineActions) button.botui-actions-buttons-button:hover{cursor: grab;}
+    .send-button circle,.micIcon circle{fill: #999;}
+    .micIcon rect {stroke: #999;}
+    .dot{width:.5rem;height:.5rem;border-radius:.5rem;display:inline-block;background-color:#919292}
+    .dot:nth-last-child(1){margin-left:.3rem;animation:loading .6s .3s linear infinite}
+    .dot:nth-last-child(2){margin-left:.3rem;animation:loading .6s .2s linear infinite}
+    .dot:nth-last-child(3){animation:loading .6s .1s linear infinite}
+    @keyframes fade-in {
+      0%{opacity:0.5}
+      100%{opacity:1}
+    }
+    @keyframes loading {
+      0%{transform:translate(0,0);background-color:#ababab}
+      25%{transform:translate(0,-3px)}
+      50%{transform:translate(0,0);background-color:#ababab}
+      75%{transform:translate(0,3px)}
+      100%{transform:translate(0,0)}
+    }
+    /**new theme css */
+    .conversation-area{background:#f7f9fc;padding: 0px 0px 65px;}
+    .human.botui-message-content.html{box-shadow:none;}
+    .faqContainer,.botui-message-content{margin: 16px;}
+    .botui-message-content.html, .faqContainer, .botui-message-content.loading{box-shadow: 0px 10px 51px -25px rgba(0, 0, 0, 0.3);background: #fff; border-radius: 8px;}
+    .faqItem {padding: 0px 8px;}
+    .faqItem:hover {background: #f0f0f0;}
+    .botui-actions-buttons:not(.inlineActions) {box-shadow: 0px -32px 32px -32px rgba(0, 0, 0, 0.3);margin-left: 0px;}
+    .botui-message-content{margin:16px;}
+    .human.botui-message-content.html{box-shadow:none;background:none;border-radius:0;padding:12px 16px 0px;max-width:calc(100% - 32px);width:100%}
+    .botui-actions-buttons.inlineActions {padding: 0px 16px;}
+    .relatedLinkBox a.relatedlinks {background: none;}
+    .botui.botui-container{overflow:visible;}
+    .botui-message-content .showingResultFor {border-bottom: 1px solid #d2d2d2;margin: 0px -16px 16px;padding: 16px 16px 16px;}
+    .botui-actions-container form.botui-actions-text{margin: 16px;padding: 12px 16px;}
+    .botui-message-content.html.noShadow{box-shadow:none;}
+    /**new theme css end**/
+  </style>
+  <style>
+    /**ANIMATION STYLE**/
+    .initialAnimation{margin:16px 0px 12px}
+    .initialAnimation .container{width:100%;height:100px;overflow:hidden;display:flex;align-items:center;justify-content:center;transition:background 1000ms ease;position:relative}
+    .initialAnimation .container::after{position:absolute;content:"";width:min(50vw,50vh);height:min(50vw,50vh);border-radius:50%;background:url(https://images.shiksha.ws/public/images/whiteLogoIconMin.png) no-repeat center center;z-index:3;background-size:28px}
+    .blobs{height:min(60vw,60vh);max-height:100%;max-width:100%}
+    .blobs svg{position:relative;height:100%;z-index:2}
+    .blob{animation:rotate 11s infinite alternate ease-in-out;transform-origin:50% 50%;opacity:.7}
+    .blob.alt{animation-direction:alternate-reverse;opacity:.3}
+    .blob path{animation:blob-anim 5s infinite alternate cubic-bezier(0.45,0.2,0.55,0.8);transform-origin:50% 50%;transform:scale(0.8);transition:fill 800ms ease}
+    .blob-1 path{fill:#984ddf;filter:blur(1rem)}
+    .blob-2 path{fill:#4344ad;animation-duration:7s;filter:blur(0.75rem);transform:scale(0.78)}
+    .blob-3 path{fill:#74d9e1;animation-duration:6s;filter:blur(0.5rem);transform:scale(0.76)}
+    .blob-4 path{fill:#050515;animation-duration:10s;filter:blur(10rem);transform:scale(0.5)}
+    .blob-2.alt{animation-direction:alternate}
+    .blob-4.alt{animation-direction:alternate;opacity:.8}
+    @keyframes blob-anim {
+        0%{d:path("M 100 600 q 0 -500,500 -500 t 500 500 t -500 500 T 100 600 z")}
+        30%{d:path("M 100 600 q -50 -400,500 -500 t 450 550 t -500 500 T 100 600 z")}
+        70%{d:path("M 100 600 q 0 -400,500 -500 t 400 500 t -500 500 T 100 600 z")}
+        100%{d:path("M 150 600 q 0 -600,500 -500 t 500 550 t -500 500 T 150 600 z")}
+    }
+    @keyframes rotate {
+        from{transform:rotate(0deg)}
+        to{transform:rotate(360deg)}
+    }
+
+    /**Text animation */
+    #text-container{
+        border-radius: 50px;
+        padding: 0px 20px;
+        background: #f0f0f0;
+        height: 48px;
+        position: fixed;
+        overflow-y: visible !important;
+        left: 16px;
+        right: 16px;
+        transition: all .5s ease-in-out;
+        bottom:24px;
+    }
+    #containerData{
+        overflow:auto;
+        display:flex;
+        font-size:14px;
+        color:#999;
+        line-height:21px; 
+        color:#444;
+        align-items: center;
+        height: 48px;
+    }
+    #text-container span{transition:all .3s ease-in;visibility:hidden;width:0}
+    #text-container span.visible{visibility:visible;width:auto}
+    #containerData.cursor:after{content:"|";display:inline-block;color:#444;animation:blinkMyCursor .9s ease-in-out .5s infinite forwards}
+    @keyframes blinkMyCursor {
+        0%{opacity:0}
+        50%{opacity:1}
+        100%{opacity:0}
+    }
+  </style>
+  <link rel="stylesheet" as="style" onload="this.rel=&#39;stylesheet&#39;" href="./shikshaGPTBox.min.c7b194.css" type="text/css">
+  <link rel="stylesheet" as="style" onload="this.rel=&#39;stylesheet&#39;" href="./shikshaGPTCBCFlow.min.b254cd.css" type="text/css">
+  <link rel="stylesheet" as="style" onload="this.rel=&#39;stylesheet&#39;" href="./thinkingBox.min.481fc3.css" type="text/css">
+  <link rel="stylesheet" href="./css2" as="style" onload="this.onload=null;this.rel=&#39;stylesheet&#39;">
+  
+  <!-- Noscript fallbacks for all CSS files -->
+  <noscript>
+    <link rel="stylesheet" href="//js.shiksha.ws/public/css/build/shikshaGPTBox.min.c7b194.css" type="text/css" />
+    <link rel="stylesheet" href="//js.shiksha.ws/public/css/build/shikshaGPTCBCFlow.min.b254cd.css" type="text/css" />
+    <link rel="stylesheet" href="//js.shiksha.ws/public/css/build/thinkingBox.min.481fc3.css" type="text/css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,100..900&display=swap">
+  </noscript>
+<style id="thinking-box-accessibility-styles">.sr-only {position: absolute !important;width: 1px !important;height: 1px !important;padding: 0 !important;margin: -1px !important;overflow: hidden !important;clip: rect(0, 0, 0, 0) !important;white-space: nowrap !important;border: 0 !important;}</style><style type="text/css">.v-select{position:relative;font-family:sans-serif}.v-select,.v-select *{box-sizing:border-box}.v-select.rtl .open-indicator{left:10px;right:auto}.v-select.rtl .selected-tag{float:right;margin-right:3px;margin-left:1px}.v-select.rtl .dropdown-menu{text-align:right}.v-select.rtl .dropdown-toggle .clear{left:30px;right:auto}.v-select .open-indicator{position:absolute;bottom:6px;right:10px;cursor:pointer;pointer-events:all;opacity:1;height:20px}.v-select .open-indicator,.v-select .open-indicator:before{display:inline-block;transition:all .15s cubic-bezier(1,-.115,.975,.855);transition-timing-function:cubic-bezier(1,-.115,.975,.855);width:10px}.v-select .open-indicator:before{border-color:rgba(60,60,60,.5);border-style:solid;border-width:3px 3px 0 0;content:"";height:10px;vertical-align:top;transform:rotate(133deg);box-sizing:inherit}.v-select.open .open-indicator:before{transform:rotate(315deg)}.v-select.loading .open-indicator{opacity:0}.v-select.open .open-indicator{bottom:1px}.v-select .dropdown-toggle{-webkit-appearance:none;-moz-appearance:none;appearance:none;display:block;padding:0;background:none;border:1px solid rgba(60,60,60,.26);border-radius:4px;white-space:normal}.v-select .dropdown-toggle:after{visibility:hidden;display:block;font-size:0;content:" ";clear:both;height:0}.v-select .dropdown-toggle .clear{position:absolute;bottom:9px;right:30px;font-size:23px;font-weight:700;line-height:1;color:rgba(60,60,60,.5);padding:0;border:0;background-color:transparent;cursor:pointer}.v-select.searchable .dropdown-toggle{cursor:text}.v-select.unsearchable .dropdown-toggle{cursor:pointer}.v-select.open .dropdown-toggle{border-bottom-color:transparent;border-bottom-left-radius:0;border-bottom-right-radius:0}.v-select .dropdown-menu{display:block;position:absolute;top:100%;left:0;z-index:1000;min-width:160px;padding:5px 0;margin:0;width:100%;overflow-y:scroll;border:1px solid rgba(0,0,0,.26);box-shadow:0 3px 6px 0 rgba(0,0,0,.15);border-top:none;border-radius:0 0 4px 4px;text-align:left;list-style:none;background:#fff}.v-select .no-options{text-align:center}.v-select .selected-tag{color:#333;background-color:#f0f0f0;border:1px solid #ccc;border-radius:4px;height:26px;margin:4px 1px 0 3px;padding:1px .25em;float:left;line-height:24px}.v-select.single .selected-tag{background-color:transparent;border-color:transparent}.v-select.single.open .selected-tag{position:absolute;opacity:.5}.v-select.single.loading .selected-tag,.v-select.single.open.searching .selected-tag{display:none}.v-select .selected-tag .close{float:none;margin-right:0;font-size:20px;appearance:none;padding:0;cursor:pointer;background:0 0;border:0;font-weight:700;line-height:1;color:#000;text-shadow:0 1px 0 #fff;filter:alpha(opacity=20);opacity:.2}.v-select.single.searching:not(.open):not(.loading) input[type=search]{opacity:.2}.v-select input[type=search]::-webkit-search-cancel-button,.v-select input[type=search]::-webkit-search-decoration,.v-select input[type=search]::-webkit-search-results-button,.v-select input[type=search]::-webkit-search-results-decoration{display:none}.v-select input[type=search]::-ms-clear{display:none}.v-select input[type=search],.v-select input[type=search]:focus{appearance:none;-webkit-appearance:none;-moz-appearance:none;line-height:1.42857143;font-size:1em;height:34px;display:inline-block;border:none;outline:none;margin:0;padding:0 .5em;width:10em;max-width:100%;background:none;position:relative;box-shadow:none}.v-select.unsearchable input[type=search]{opacity:0}.v-select.unsearchable input[type=search]:hover{cursor:pointer}.v-select li{line-height:1.42857143}.v-select li>a{display:block;padding:3px 20px;clear:both;color:#333;white-space:nowrap}.v-select li:hover{cursor:pointer}.v-select .dropdown-menu .active>a{color:#333;background:rgba(50,50,50,.1)}.v-select .dropdown-menu>.highlight>a{background:#5897fb;color:#fff}.v-select .highlight:not(:last-child){margin-bottom:0}.v-select .spinner{opacity:0;position:absolute;top:5px;right:10px;font-size:5px;text-indent:-9999em;overflow:hidden;border-top:.9em solid hsla(0,0%,39%,.1);border-right:.9em solid hsla(0,0%,39%,.1);border-bottom:.9em solid hsla(0,0%,39%,.1);border-left:.9em solid rgba(60,60,60,.45);transform:translateZ(0);animation:vSelectSpinner 1.1s infinite linear;transition:opacity .1s}.v-select .spinner,.v-select .spinner:after{border-radius:50%;width:5em;height:5em}.v-select.disabled .dropdown-toggle,.v-select.disabled .dropdown-toggle .clear,.v-select.disabled .dropdown-toggle input,.v-select.disabled .open-indicator,.v-select.disabled .selected-tag .close{cursor:not-allowed;background-color:#f8f8f8}.v-select.loading .spinner{opacity:1}@-webkit-keyframes vSelectSpinner{0%{transform:rotate(0deg)}to{transform:rotate(1turn)}}@keyframes vSelectSpinner{0%{transform:rotate(0deg)}to{transform:rotate(1turn)}}.fade-enter-active,.fade-leave-active{transition:opacity .15s cubic-bezier(1,.5,.8,1)}.fade-enter,.fade-leave-to{opacity:0}</style></head>
+
+<body onload="initiateShikshaGPT()">
+    <div id="chat-window" class="fullheight"><div class="conversation-area"><div class="primaryOtherActionBox"></div> <div class="botui botui-container"><div class="botui-messages-container"><div class="botui-message"><div class=""><!----><div class="botui-message-content html"><!----><!----><!----><span>Hi, Explore colleges that students with similar choices have shown interest in</span> <!----></div></div><!----><!----></div><div class="botui-message"><div class=""><!----><div class="botui-message-content html noShadow"><!----><!----><!----><span>    <div class="rich-card" data-type="CARD_COLLEGE_TUPLES">
+        <!-- CARD_COLLEGE_TUPLES -->
+        <div class="colgCrdWrap cswipe skipable loaded">
+    <div class="cswipeRecommendation">Recommendation 1 of 3</div>
+    <div class="collegCards cswipeCards">
+
+                <div class="collegCard swipable cswipeCard" data-position="0" data-trackingkeyid="13328" data-sdcsource="" data-experimentname="application_response_combined" data-boostedstrategy="none" data-recouniqueid="c587925a-53d7-42e6-9db9-e8a0055b022f" data-recoweight="1" data-instituteid="3031" data-recommendationmodel="user_item" data-reasonforreco="" data-reasonforrecotype="" data-reasonforrecocategory="" data-recommendedbasecourse="10" data-entitytype="drc" data-basecourseids="[10]" data-pos="0" style="z-index: 3; touch-action: pan-y; user-select: none; -webkit-user-drag: none; -webkit-tap-highlight-color: rgba(0, 0, 0, 0);">
+                    <div class="body">
+                        <div class="flx-box-sb">
+                            <div>
+                                <strong class="mainH">IIT Madras - Indian Institute of Technology</strong>
+                                <div class="flx-box fW bA nosfwrap">                                    
+                                    <div class="location">
+                                        <i class="locationSVG">
+                                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="https://www.w3.org/2000/svg">
+                                                <path d="M10.5 5C10.5 8.5 6 11.5 6 11.5C6 11.5 1.5 8.5 1.5 5C1.5 3.80653 1.97411 2.66193 2.81802 1.81802C3.66193 0.974106 4.80653 0.5 6 0.5C7.19347 0.5 8.33807 0.974106 9.18198 1.81802C10.0259 2.66193 10.5 3.80653 10.5 5Z" stroke="#2F1238" stroke-linecap="round" stroke-linejoin="round"></path>
+                                                <path d="M6 6.5C6.82843 6.5 7.5 5.82843 7.5 5C7.5 4.17157 6.82843 3.5 6 3.5C5.17157 3.5 4.5 4.17157 4.5 5C4.5 5.82843 5.17157 6.5 6 6.5Z" stroke="#2F1238" stroke-linecap="round" stroke-linejoin="round"></path>
+                                            </svg>
+                                        </i>
+                                        <span class="locationName">Chennai</span>
+                                    </div>
+                                    <div class="location ownership">
+                                        Public                                    </div>
+                                    <span class="rank">#1 NIRF</span>
+                                </div>
+                            </div>
+                            <span class="logoCont">
+                                <img src="./1630668488phpf8KwKV.jpeg" class="lImg">
+                            </span>
+                        </div>                        
+                        <div class="flx-box fW otherInfo">
+                            <div class="flx-box fullwdth">
+                                <div>
+                                    <label>Courses Offered</label>
+                                    <span class="trim">39 </span>
+                                    
+                                    <span class="trim"> ( B.E. / B.Tech</span>
+                                    <span class="trim1">)</span>
+
+                                </div>
+
+                                <div>
+                                    <label>Exams Accepted</label>
+                                    <span class="comma">
+                                                                                    <span>JEE Main</span>
+                                        <span onclick="expandExam(this)" class="plusExam">+1</span>                                            <div class="absoluteBox">
+                                                                                                    <span>JEE Main</span>
+                                                                                                    <span>JEE Advanced</span>
+                                                                                            </div>
+                                                 
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="flx-box fullwdth">
+                                <div>
+                                    <label>Total Fees Range</label>
+                                    <span>₹ 8 L - 10 L</span>
+                                </div>
+                                <div>
+                                    <label>Average Package</label>
+                                    <span>₹ 15 L - 46 L</span>
+                                </div>
+                            </div>
+                            <div class="fullwdth">
+                                <!-- <label>What Students say</label> -->
+                                <div class="flx-box mA">
+                                                                            <div class="ratingBox fW">
+                                                <div>
+                                                                                                            <strong class="reviewMean">4.6</strong><span class="reviewAbsolute">/5</span>
+                                                        <i>
+                                                            <svg width="14" height="13" viewBox="0 0 14 13" fill="none" xmlns="https://www.w3.org/2000/svg">
+                                                            <path d="M7 0L9.05725 4.16844L13.6574 4.83688L10.3287 8.08156L11.1145 12.6631L7 10.5L2.8855 12.6631L3.6713 8.08156L0.342604 4.83688L4.94275 4.16844L7 0Z" fill="#FFC000"></path>
+                                                            </svg>
+                                                        </i>
+                                                                                                    </div>
+                                                                                                    <div class="flx-box totalRvw">
+                                                            <label>(233 Reviews)</label>
+                                                    </div>
+                                                                                        </div>
+                                        <div class="ratingBreakupBox">
+                                                                                                <div class="flx-box-sb">
+                                                        <label>Placement</label><span>4.5</span>
+                                                    </div>
+                                                                                                    <div class="flx-box-sb">
+                                                        <label>Value for Money</label><span>4.7</span>
+                                                    </div>
+                                              
+                                        </div>
+                                        
+                                </div>                                
+                            </div>
+
+                                                        
+
+                        </div>            
+                    </div>
+                                    </div>
+
+                <div class="collegCard swipable cswipeCard" data-position="1" data-trackingkeyid="13328" data-sdcsource="" data-experimentname="application_response_combined" data-boostedstrategy="priority_client" data-recouniqueid="c587925a-53d7-42e6-9db9-e8a0055b022f" data-recoweight="0.01691199" data-instituteid="28499" data-recommendationmodel="user_item" data-reasonforreco="" data-reasonforrecotype="" data-reasonforrecocategory="" data-recommendedbasecourse="10" data-entitytype="drc" data-basecourseids="[10]" data-pos="1" style="z-index: 2; touch-action: pan-y; user-select: none; -webkit-user-drag: none; -webkit-tap-highlight-color: rgba(0, 0, 0, 0);">
+                    <div class="body">
+                        <div class="flx-box-sb">
+                            <div>
+                                <strong class="mainH">LPU - Lovely Professional University</strong>
+                                <div class="flx-box fW bA nosfwrap">                                    
+                                    <div class="location">
+                                        <i class="locationSVG">
+                                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="https://www.w3.org/2000/svg">
+                                                <path d="M10.5 5C10.5 8.5 6 11.5 6 11.5C6 11.5 1.5 8.5 1.5 5C1.5 3.80653 1.97411 2.66193 2.81802 1.81802C3.66193 0.974106 4.80653 0.5 6 0.5C7.19347 0.5 8.33807 0.974106 9.18198 1.81802C10.0259 2.66193 10.5 3.80653 10.5 5Z" stroke="#2F1238" stroke-linecap="round" stroke-linejoin="round"></path>
+                                                <path d="M6 6.5C6.82843 6.5 7.5 5.82843 7.5 5C7.5 4.17157 6.82843 3.5 6 3.5C5.17157 3.5 4.5 4.17157 4.5 5C4.5 5.82843 5.17157 6.5 6 6.5Z" stroke="#2F1238" stroke-linecap="round" stroke-linejoin="round"></path>
+                                            </svg>
+                                        </i>
+                                        <span class="locationName">Jalandhar</span>
+                                    </div>
+                                    <div class="location ownership">
+                                        Private                                    </div>
+                                    <span class="rank">#48 NIRF</span>
+                                </div>
+                            </div>
+                            <span class="logoCont">
+                                <img src="./1704968843phpDyxRO9.jpeg" class="lImg">
+                            </span>
+                        </div>                        
+                        <div class="flx-box fW otherInfo">
+                            <div class="flx-box fullwdth">
+                                <div>
+                                    <label>Courses Offered</label>
+                                    <span class="trim">81 </span>
+                                    
+                                    <span class="trim"> ( B.E. / B.Tech</span>
+                                    <span class="trim1">)</span>
+
+                                </div>
+
+                                <div>
+                                    <label>Exams Accepted</label>
+                                    <span class="comma">
+                                                                                    <span>LPU NEST</span>
+                                        <span onclick="expandExam(this)" class="plusExam">+3</span>                                            <div class="absoluteBox">
+                                                                                                    <span>LPU NEST</span>
+                                                                                                    <span>CBSE 12th</span>
+                                                                                                    <span>ISC</span>
+                                                                                                    <span>PSEB 12th</span>
+                                                                                            </div>
+                                                 
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="flx-box fullwdth">
+                                <div>
+                                    <label>Total Fees Range</label>
+                                    <span>₹ 4.5 L - 16 L</span>
+                                </div>
+                                <div>
+                                    <label>Average Package</label>
+                                    <span>₹ 7.07 L</span>
+                                </div>
+                            </div>
+                            <div class="fullwdth">
+                                <!-- <label>What Students say</label> -->
+                                <div class="flx-box mA">
+                                                                            <div class="ratingBox fW">
+                                                <div>
+                                                                                                            <strong class="reviewMean">4.3</strong><span class="reviewAbsolute">/5</span>
+                                                        <i>
+                                                            <svg width="14" height="13" viewBox="0 0 14 13" fill="none" xmlns="https://www.w3.org/2000/svg">
+                                                            <path d="M7 0L9.05725 4.16844L13.6574 4.83688L10.3287 8.08156L11.1145 12.6631L7 10.5L2.8855 12.6631L3.6713 8.08156L0.342604 4.83688L4.94275 4.16844L7 0Z" fill="#FFC000"></path>
+                                                            </svg>
+                                                        </i>
+                                                                                                    </div>
+                                                                                                    <div class="flx-box totalRvw">
+                                                            <label>(3.27K Reviews)</label>
+                                                    </div>
+                                                                                        </div>
+                                        <div class="ratingBreakupBox">
+                                                                                                <div class="flx-box-sb">
+                                                        <label>Placement</label><span>4</span>
+                                                    </div>
+                                                                                                    <div class="flx-box-sb">
+                                                        <label>Value for Money</label><span>4.1</span>
+                                                    </div>
+                                              
+                                        </div>
+                                        
+                                </div>                                
+                            </div>
+
+                                                        
+
+                        </div>            
+                    </div>
+                                    </div>
+
+                <div class="collegCard swipable cswipeCard" data-position="2" data-trackingkeyid="13328" data-sdcsource="" data-experimentname="application_response_combined" data-boostedstrategy="none" data-recouniqueid="c587925a-53d7-42e6-9db9-e8a0055b022f" data-recoweight="0.61278903" data-instituteid="2999" data-recommendationmodel="user_item" data-reasonforreco="" data-reasonforrecotype="" data-reasonforrecocategory="" data-recommendedbasecourse="10" data-entitytype="drc" data-basecourseids="[10]" data-pos="2" style="z-index: 1; touch-action: pan-y; user-select: none; -webkit-user-drag: none; -webkit-tap-highlight-color: rgba(0, 0, 0, 0);">
+                    <div class="body">
+                        <div class="flx-box-sb">
+                            <div>
+                                <strong class="mainH">IIT Kharagpur - Indian Institute of Technology</strong>
+                                <div class="flx-box fW bA nosfwrap">                                    
+                                    <div class="location">
+                                        <i class="locationSVG">
+                                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="https://www.w3.org/2000/svg">
+                                                <path d="M10.5 5C10.5 8.5 6 11.5 6 11.5C6 11.5 1.5 8.5 1.5 5C1.5 3.80653 1.97411 2.66193 2.81802 1.81802C3.66193 0.974106 4.80653 0.5 6 0.5C7.19347 0.5 8.33807 0.974106 9.18198 1.81802C10.0259 2.66193 10.5 3.80653 10.5 5Z" stroke="#2F1238" stroke-linecap="round" stroke-linejoin="round"></path>
+                                                <path d="M6 6.5C6.82843 6.5 7.5 5.82843 7.5 5C7.5 4.17157 6.82843 3.5 6 3.5C5.17157 3.5 4.5 4.17157 4.5 5C4.5 5.82843 5.17157 6.5 6 6.5Z" stroke="#2F1238" stroke-linecap="round" stroke-linejoin="round"></path>
+                                            </svg>
+                                        </i>
+                                        <span class="locationName">Kharagpur</span>
+                                    </div>
+                                    <div class="location ownership">
+                                        Public                                    </div>
+                                    <span class="rank">#5 NIRF</span>
+                                </div>
+                            </div>
+                            <span class="logoCont">
+                                <img src="./1763553547phpk3rUm5.jpeg" class="lImg">
+                            </span>
+                        </div>                        
+                        <div class="flx-box fW otherInfo">
+                            <div class="flx-box fullwdth">
+                                <div>
+                                    <label>Courses Offered</label>
+                                    <span class="trim">68 </span>
+                                    
+                                    <span class="trim"> ( B.E. / B.Tech</span>
+                                    <span class="trim1">)</span>
+
+                                </div>
+
+                                <div>
+                                    <label>Exams Accepted</label>
+                                    <span class="comma">
+                                                                                    <span>JEE Advanced</span>
+                                        <span onclick="expandExam(this)" class="plusExam">+1</span>                                            <div class="absoluteBox">
+                                                                                                    <span>JEE Advanced</span>
+                                                                                                    <span>JEE Main</span>
+                                                                                            </div>
+                                                 
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="flx-box fullwdth">
+                                <div>
+                                    <label>Total Fees Range</label>
+                                    <span>₹ 8 L - 8.4 L</span>
+                                </div>
+                                <div>
+                                    <label>Average Package</label>
+                                    <span>₹ 19.76 L - 21.28 L</span>
+                                </div>
+                            </div>
+                            <div class="fullwdth">
+                                <!-- <label>What Students say</label> -->
+                                <div class="flx-box mA">
+                                                                            <div class="ratingBox fW">
+                                                <div>
+                                                                                                            <strong class="reviewMean">4.5</strong><span class="reviewAbsolute">/5</span>
+                                                        <i>
+                                                            <svg width="14" height="13" viewBox="0 0 14 13" fill="none" xmlns="https://www.w3.org/2000/svg">
+                                                            <path d="M7 0L9.05725 4.16844L13.6574 4.83688L10.3287 8.08156L11.1145 12.6631L7 10.5L2.8855 12.6631L3.6713 8.08156L0.342604 4.83688L4.94275 4.16844L7 0Z" fill="#FFC000"></path>
+                                                            </svg>
+                                                        </i>
+                                                                                                    </div>
+                                                                                                    <div class="flx-box totalRvw">
+                                                            <label>(517 Reviews)</label>
+                                                    </div>
+                                                                                        </div>
+                                        <div class="ratingBreakupBox">
+                                                                                                <div class="flx-box-sb">
+                                                        <label>Placement</label><span>4.5</span>
+                                                    </div>
+                                                                                                    <div class="flx-box-sb">
+                                                        <label>Value for Money</label><span>4.5</span>
+                                                    </div>
+                                              
+                                        </div>
+                                        
+                                </div>                                
+                            </div>
+
+                                                        
+
+                        </div>            
+                    </div>
+                                    </div>
+                            <div class="SingleblankCard">
+                    <img class="recomendImage" src="./endRecommendation.png">
+                    <p class="infoText">Explore More College Collections tailored for you</p>
+                    <a target="_blank" href="https://www.shiksha.com/recommendation-collections?fromWhere=DRC">Click Here</a> <!--View <span id="totalShortlitedCount">0</span> -->
+                </div>
+                        <div class="blurCard"></div></div>
+                                            <!-- <div class="shortlitedBox">
+                            <div class="nrmlTxt">You showed interest in <strong><span id="totalShortlitedCount">0</span> colleges</strong> which have been saved in your shortlist!</div>
+                            <a target="_blank" href="https://www.shiksha.com/college-shortlist">Go to your Shortlist</a>
+                        </div> -->
+                        <div class="collegCardButton cswipeButton">
+                            <div class="flx-box mA cA gap16">
+                                <span id="nope" class="nope">
+                                    <span class="dislikeIcn"></span>
+                                </span>
+                                <span id="love" class="love">
+                                    <span class="likeIcn"></span>
+                                </span>                            
+                            </div>
+                        </div>
+                    </div>        
+    </div>
+    </span> <!----></div></div><!----><!----></div></div><div class="botui-actions-container fade"><!----></div></div></div> <div class="inputControlBox flxBox mA visibleShort" style=""><div class="input-box"><div class="iflxBox mA inputElemCont"><input type="text" id="chatBox" name="txtAsk" placeholder="Write your query on colleges, exam here..." autocomplete="off" maxlength="200" class="chat-input"> <span class="send-button  iflxBox mA"><svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="https://www.w3.org/2000/svg"><circle cx="15" cy="15" r="15" fill="#008489"></circle> <path d="M9 20.3333V16.3333L14.3333 15L9 13.6667V9.66666L21.6667 15L9 20.3333Z" fill="white"></path></svg></span></div> <lable class="disclaimerText" style="display: none;">ShikshaGPT is experimental &amp; accuracy might vary</lable><div class="startOver"><span id="startOverbtn" class="capsuleItem">Start Over</span></div></div></div> <div id="signUpForm"></div></div>
+    <script defer="" type="text/javascript" src="./vue.8887ab.js.download"></script>
+    <script defer="" type="text/javascript" src="./chatui.67ec42.js.download" fetchpriority="high"></script>
+    <script defer="" type="text/javascript" src="./shikshaGPTBox.1de3c5.js.download" fetchpriority="high"></script>
+    <script defer="" type="text/javascript" src="./shikshaGPTCBCFlow.fcab7b.js.download" fetchpriority="high"></script>
+    <script defer="" type="text/javascript" src="./shikshaGPTSwipableCards.f8480c.js.download" fetchpriority="high"></script>
+    <script defer="" type="text/javascript" src="./hammer.min.js.download" fetchpriority="high"></script>
+    <script defer="" type="text/javascript" src="./marked.min.js.download" crossorigin="anonymous" fetchpriority="high"></script>
+    
+    <!-- Load DeepSearch dependencies immediately if DTFlow exists (for auto-answering flow) -->
+    <script defer="" type="text/javascript" src="./thinkingBox.ea623e.js.download" fetchpriority="high"></script>
+    <script defer="" type="text/javascript" src="./shikshaDeepSearch.9958a6.js.download" fetchpriority="high"></script>
+
+    <!-- Non-critical scripts - lazy load on user interaction -->
+    <script>
+        // Lazy load non-critical scripts
+        const lazyScripts = [
+            "//js.shiksha.ws/public/js/build/jquery-3.5.1.min.c52dc4.js",
+            "//js.shiksha.ws/public/js/build/tcsdk.cbd613.js",
+            "https://apis.google.com/js/api:client.js",
+            "https://connect.facebook.net/en_US/sdk.js",
+            "//js.shiksha.ws/public/mobile5/js/build/userRegistrationFormMobile.87ef0c.js"
+        ];
+        
+        function loadLazyScript(url) {
+            const script = document.createElement('script');
+            script.src = url;
+            script.defer = true;
+            
+            // External CDN scripts load without integrity (they don't provide hashes)
+            if (url.includes('apis.google.com') || url.includes('connect.facebook.net')) {
+                script.crossOrigin = 'anonymous';
+            }
+            
+            document.head.appendChild(script);
+        }
+        
+        // Load lazy scripts on first user interaction
+        let lazyLoaded = false;
+        function loadLazyScripts() {
+            if (lazyLoaded) return;
+            lazyLoaded = true;
+            lazyScripts.forEach(loadLazyScript);
+        }
+        
+        // Trigger on various user interactions
+        ['click', 'scroll', 'touchstart', 'keydown'].forEach(event => {
+            document.addEventListener(event, loadLazyScripts, { once: true, passive: true });
+        });
+    </script>
+    <script>
+        // Enable input field after critical resources load
+        function enableInputField() {
+          const chatInput = document.getElementById('chatBox');
+          if (chatInput) {
+            chatInput.classList.remove('loading');
+            chatInput.disabled = false;
+            chatInput.focus();
+          }
+        }
+        
+        // Optimize action headings for LCP
+        function optimizeActionHeadings() {
+          const actionHeadings = document.querySelectorAll('.action-heading');
+          actionHeadings.forEach(heading => {
+            // Ensure headings render quickly
+            heading.style.fontDisplay = 'swap';
+            heading.style.contain = 'layout style paint';
+          });
+        }
+        
+        // Enable input after DOM and critical scripts load
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', function() {
+            enableInputField();
+            optimizeActionHeadings();
+          });
+        } else {
+          // DOM already loaded, enable after a short delay
+          setTimeout(function() {
+            enableInputField();
+            optimizeActionHeadings();
+          }, 100);
+        }
+        
+        //PHP Variables
+        var _referrerTitle = "";
+        var _SHIKSHA_GPT_ENDPOINT = "https://apis.shiksha.com/shikshagpt";
+        var _userInitial = "";
+        var _gptCookie = "";
+        var _visitorSessionId = "";
+        var _data = "eyJkdEZsb3ciOnRydWUsImR0Rmxvd09iamVjdCI6eyJsaXN0aW5nc0RhdGEiOnsic3RhZ2UiOiJkZWxheWVkQ2hhdFJlY28ifX0sInBhZ2VDb250ZXh0Ijp7InBhZ2VJZGVudGlmaWVyIjoiVUlMUCIsInBhZ2VFbnRpdHlJZCI6Mjk5OSwicGFnZVRpdGxlIjoiSUlUIEtoYXJhZ3B1ciAoSUlULUtHUCk6IEN1dG9mZiwgUGxhY2VtZW50LCBGZWVzLCBBZG1pc3Npb24gMjAyNiwgUmFua2luZywgQ291cnNlcyIsImV4dHJhRGF0YSI6eyJjb3VudHJ5SWQiOlsyXSwic3RhdGVJZCI6WzEyN10sImNpdHlJZCI6WzEyNl0sIl9lbnRpdHlOYW1lIjoiSUlUIEtoYXJhZ3B1ciIsIl9lbnRpdHlUeXBlIjoiVUlMUCIsIl9yZXNUeXBlIjoiaW5zdGl0dXRlIiwiY2hpbGRQYWdlSWRlbnRpZmllciI6ImFsbFJldmlld3NQYWdlIiwib2RuSWRzIjpbXX0sImZsYWdzaGlwQ291cnNlRGF0YSI6eyJleHRyYURhdGEiOnsiaGllcmFyY2h5Ijp7IjAiOnsic3RyZWFtSWQiOjIsInN1YnN0cmVhbUlkIjowLCJzcGVjaWFsaXphdGlvbklkIjoxMDgsInByaW1hcnlIaWVyYXJjaHkiOjF9fSwiZmxhZ3NoaXBDb3Vyc2VJZCI6Nzk3OCwiYmFzZUNvdXJzZUlkIjpbMTBdLCJlZHVjYXRpb25UeXBlIjpbMjBdLCJkZWxpdmVyeU1ldGhvZCI6WzMzXSwiY3JlZGVudGlhbCI6WzldLCJsZXZlbCI6WzE0XX19LCJ1c2VyQmFzZUNvdXJzZUlkcyI6WzEwXX19";    
+        var dtFlow = 0 ;
+        var dtFlowData = {} ;
+        var deviceType = "desktop" ;
+        var SHIKSHA_TRACK_HOME = "https://track.shiksha.com";
+        var SHIKSHA_API_CLIENT_FACADE = "https://apis.shiksha.com";
+        var TRUECALLER_APP_KEY = "mEBp4ffe0984d03dd4e76abc2ff10e300c8e4"; 
+         ;    
+    </script>
+
+
+<script type="text/javascript" src="./vue-select.js.download"></script></body></html>

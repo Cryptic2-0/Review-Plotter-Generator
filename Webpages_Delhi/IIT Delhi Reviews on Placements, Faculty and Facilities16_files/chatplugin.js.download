@@ -1,0 +1,2138 @@
+var autoOpenAA = 0;
+window.manageScroll = false;
+var peqGACategory = "PEQ_EP";
+var _DTFLOWOBJECT = {};
+var _isAppended = false;
+var saLncFlowObj = {
+    stage: "saLNC"
+};
+
+// Function to get decide the GPT version of the chat window
+var isGPTAvailable = (function() {
+  var storageKey = "gptAccessEnabled";
+
+  // Global disaster override to force-disable GPT
+  var isGptGloballyDisabled = window.forceDisableGPT === true;
+
+  if (isGptGloballyDisabled) {
+    return false;
+  }
+
+  var storedValue = getCookie(storageKey); 
+
+  return storedValue === "true";
+})();
+
+// pollyfill for requestAnimationFrame
+if (!window.requestAnimationFrame) {
+  window.requestAnimationFrame = function(callback) {
+    return setTimeout(callback, 16); // ~60fps
+  };
+}
+
+function closeChatPrompt(dontTrackEvent) {
+    setTimeout(function(){
+        var chatPrompt = document.querySelector(".chat--prompt");
+        var chatIcon = document.querySelector(".primary-chat-icon");
+        if (chatPrompt) {
+            chatPrompt.classList.add("hide");
+        }
+        if (chatIcon) {
+            chatIcon.classList.remove("noAnimation");
+        }
+
+        if (isAbroad && typeof dontTrackEvent !== "undefined" && !dontTrackEvent) {
+            trackDelayedRecommendation("Prompt_Close", JSON.stringify(saLncFlowObj));
+        }
+    },0);
+}
+
+function closeFeedbackPrompt() {
+    setTimeout(function(){
+        var element = document.querySelector(".feedback_prompt");
+        if (element) {
+            element.classList.add("hide");
+        }
+    },0);
+}
+
+function bindAssistantEvents() {
+    if (window.history && window.history.pushState) {
+        // handle windows pop state for assistant
+        window.addEventListener('popstate', hideAssistantonBack);
+    }
+}
+function recordRecomendationChoice(choice) {
+    if (choice) {
+        trackDelayedRecommendation("HalfClosed-Y");
+    } else {
+        trackDelayedRecommendation("HalfClosed-N");
+    }
+    document.querySelector('#recoReactionPrompt').remove();
+    toggleChatWindow('HalfClosed-POPUP');
+    _isAppended = false;
+}
+
+function hideAssistantonBack() {
+    var chatWindow = document.getElementById("chat-window");
+    var chatIcon = document.querySelector(".primary-chat-icon");
+    var chatContainer = document.getElementById("chat-container");
+
+    if (chatWindow && !chatWindow.classList.contains("closeChatWindow")) {
+        requestAnimationFrame(function () {
+            chatWindow.classList.add("closeChatWindow");
+
+            if (chatIcon) {
+                chatIcon.classList.add("noAnimation");
+                chatIcon.classList.toggle("hide");
+            }
+
+            if (chatContainer) {
+                chatContainer.classList.remove("auto-open");
+            }
+
+            if (window.history && window.history.pushState) {
+                window.removeEventListener('popstate', hideAssistantonBack);
+            }
+
+            autoOpenAA = 0;
+        });
+    }
+    //enableBodyScrollAsync();
+}
+
+
+function getPageType() {
+    var whichPage = "Others";
+    var pageIdentifier = "";
+    var childPageIdentifier = "";
+    var resType = "";
+    if (typeof(pageContext) != 'undefined') {
+        pageIdentifier = pageContext.pageIdentifier;
+        if (pageContext.extraData != null) {
+            childPageIdentifier = pageContext.extraData.childPageIdentifier;
+            resType = pageContext.extraData._resType;
+        }
+    }
+    if (pageIdentifier == "articlePage" && childPageIdentifier == "articleDetailPage") {
+        whichPage = "ADP";
+    } else if (pageIdentifier == "UILP" && resType == "institute") {
+        whichPage = "ULP";
+    } else if (pageIdentifier == "UILP" && resType == "university") {
+        whichPage = "ILP";
+    } else if (pageIdentifier == "CLP" && childPageIdentifier == "courseListingPage") {
+        whichPage = "CLP";
+    } else if (pageIdentifier == "examPageMain") {
+        whichPage = "examPageMain";
+    } else if (typeof(pageIdentifier) != 'undefined' && pageIdentifier != null && pageIdentifier != "") {
+        whichPage = pageIdentifier;
+    }
+    return whichPage;
+}
+
+function isBoardExam(examId) {
+    var boardExamConfig = [2055, 2049, 1985, 1953, 2101, 2061, 2069, 2051, 2053, 2093, 2095, 2579, 2581, 2583, 1965, 2505, 1937, 2503, 2501, 2105, 2089, 2091, 2107, 2097, 2103, 4245, 4253, 4269, 1917, 1913, 1501, 2099, 4531, 4537, 4249, 2499, 2497, 1949, 2495, 1911, 1933, 2525, 2523, 2521, 1943, 2009, 2011, 2035, 2037, 1987, 4247, 1989, 1957, 2577, 2575, 2573, 1959, 2543, 2541, 2539, 2079, 2081, 1973, 1975, 1999, 2001, 2023, 2517, 2515, 2513, 2047, 4541, 4543, 4545, 4547, 4549, 4557, 4559, 4561, 4563, 4565, 4567, 1955, 2537, 2535, 2533, 1915, 2033, 1935, 2085, 1971, 1961, 2031, 2003, 2075, 2005, 2007, 2083, 2017, 4251, 2021, 1951, 2015, 4255, 4535, 2077];
+    if (examId > 0) {
+        return boardExamConfig.includes(parseInt(examId));
+    }
+}
+
+function getChildPageIdentifier() {
+    var whichPage = "Assistant";
+    if (typeof(pageContext) != 'undefined' && pageContext.extraData != null) {
+        var childPageIdentifier = pageContext.extraData.childPageIdentifier;
+        if (childPageIdentifier) {
+            whichPage = childPageIdentifier;
+        }
+    }
+    return whichPage;
+}
+
+function trackDelayedRecommendation(key, trDto) {
+    var dtFlowObject = (trDto) ? JSON.parse(trDto) : window._DTFLOWOBJECT;
+    var pageEntityId = typeof(pageContext) != 'undefined' ? pageContext.pageEntityId : 0;
+    var trackingDTO = {
+        "isAbroad": false,
+        "category": isGPTAvailable ? "shikshaGPT" : "Assistant",
+        "widget": "DRC",
+        "theme": "Recommendations",
+        "pageIdentifier": getPageType(),
+        "pageEntityId": pageEntityId,
+        "childPageIdentifier": getChildPageIdentifier()
+    }
+    if (typeof(dtFlowObject.stage) != 'undefined' && dtFlowObject.stage == 'delayedChatReco') {
+        trackingDTO["widget"] = "DRC";
+        //trackingDTO["category"] = "Assistant";
+        if (key == "Auto_Open") {
+            trackingDTO["event"] = "ChatTriggered";
+            trackingDTO["label"] = "ChatTriggered";
+        } else if (key == "Half_Close") {
+            trackingDTO["event"] = "ChatClosed";
+            trackingDTO["label"] = "HalfClosed";
+        } else if (key == "Full_Close") {
+            trackingDTO["event"] = "ChatClosed";
+            trackingDTO["label"] = "FullClosed";
+        } else if (key == "Chat_Interacted") {
+            trackingDTO["event"] = "ChatInteracted";
+            trackingDTO["label"] = "ClickonTrigger";
+        } else if (key == "HalfClosed-Y" || key == "HalfClosed-N") {
+            trackingDTO["event"] = "ChatClosed";
+            trackingDTO["label"] = key;
+        } else if (key == "Already_Open") {
+            trackingDTO["event"] = "chatNotTriggered";
+            trackingDTO["label"] = "ChatAlreadyOpen";
+        }
+        setTimeout(
+            eventTracking(trackingDTO), 10
+        );
+    } else if (typeof(dtFlowObject.peqStage) != 'undefined') {
+        var eventSuffix = (dtFlowObject.peqStage == "default_phase" && isBoardExam(dtFlowObject.entities[0].id)) ? 'BP' : 'CE';
+        trackingDTO["widget"] = "PEQ";
+        //trackingDTO["category"] = "Recommendations";
+        if (key == "Auto_Open") {
+            trackingDTO["event"] = "PEQ_Triggered_" + eventSuffix;
+            trackingDTO["label"] = "PEQ_Triggered";
+        } else if (key == "Half_Close") {
+            trackingDTO["event"] = "PEQ_half_close_" + eventSuffix;
+            trackingDTO["label"] = "PEQ_half_close";
+        } else if (key == "Full_Close") {
+            trackingDTO["event"] = "PEQ_Full_close_" + eventSuffix;
+            trackingDTO["label"] = "PEQ_Full_close";
+        } else if (key == "Chat_Interacted") {
+            trackingDTO["event"] = "PEQ_Full_open_" + eventSuffix;
+            trackingDTO["label"] = "PEQ_Full_open";
+        } else if (key == "HalfClosed-Y" || key == "HalfClosed-N") {
+            trackingDTO["event"] = "PEQClosed_" + eventSuffix;
+            trackingDTO["label"] = key;
+        } else if (key == "Already_Open") {
+            trackingDTO["event"] = "PEQNotTriggered_" + eventSuffix;
+            trackingDTO["label"] = "ChatAlreadyOpen";
+        }
+
+        setTimeout(
+            eventTracking(trackingDTO), 10
+        );
+    } else if (dtFlowObject.stage == 'saLNC') {
+        trackingDTO["widget"] = "saLNC";
+        trackingDTO["isAbroad"] = true;
+        trackingDTO["theme"] = "Counselling";
+
+        if (key == "Auto_Open") {
+            trackingDTO["event"] = "ChatTriggered";
+            trackingDTO["label"] = "ChatTriggered";
+        } else if (key == "Half_Close") {
+            trackingDTO["event"] = "ChatClosed";
+            trackingDTO["label"] = "HalfClosed";
+        } else if (key == "Full_Close") {
+            trackingDTO["event"] = "ChatClosed";
+            trackingDTO["label"] = "FullClosed";
+        } else if (key == "Chat_Interacted") {
+            trackingDTO["event"] = "ChatInteracted";
+            trackingDTO["label"] = "ClickonTrigger";
+        } else if (key == "HalfClosed-Y" || key == "HalfClosed-N") {
+            trackingDTO["event"] = "ChatClosed";
+            trackingDTO["label"] = key;
+        } else if (key == "Already_Open") {
+            trackingDTO["event"] = "chatNotTriggered";
+            trackingDTO["label"] = "ChatAlreadyOpen";
+        } else if (key == "Clicked") {
+            trackingDTO["event"] = "ChatbotClicked";
+            trackingDTO["label"] = "ChatbotClicked";
+        } else if (key == "Prompt_Close") {
+            trackingDTO["event"] = "PromptClose";
+            trackingDTO["label"] = "PromptClose";
+        } else if (key == "Chat_Closed") {
+            trackingDTO["event"] = "ChatClosed";
+            trackingDTO["label"] = "ChatClosed";
+        }
+        setTimeout(
+            eventTracking(trackingDTO), 10
+        );
+    }
+}
+
+// function handlePostCloserDRC() {
+//     requestAnimationFrame(function () {
+//         var isDRCParked = sessionStorage.getItem('isDRCParked') === 'true';
+//         sessionStorage.setItem('isDRCParked', isDRCParked ? 'false' : 'true');
+
+//         var chatWindow = document.querySelector('#chat-window');
+//         var chatWeb = document.querySelector('.chatWeb');
+//         var chatPrompt = document.querySelector('.chat--prompt');
+
+//         if (chatWindow) chatWindow.classList.toggle('DRCParked', !isDRCParked);
+//         if (chatWeb) chatWeb.classList.toggle('DRCParked', !isDRCParked);
+//         if (chatPrompt) chatPrompt.classList.toggle('DRCParked', !isDRCParked);
+//     });
+// }
+
+function handleCommonPopUpTriggers() {
+    try {
+        if (typeof window.pwaCommonPopUpData === 'function') {
+            var pwaPopUpData = window.pwaCommonPopUpData({
+                registryName: "Assistant",
+                toOpen: function () {}
+            });
+
+            var chatWindow = document.getElementById("chat-window");
+
+            if (!chatWindow) return;
+
+            requestAnimationFrame(function () {
+                if (chatWindow.classList.contains("closeChatWindow")) {
+                    pwaPopUpData.closePopUp();
+                } else {
+                    pwaPopUpData.queuePopUp();
+                }
+            });
+        }
+    } catch (error) {
+        // Error in handleCommonPopUpTriggers - silently handled
+    }
+}
+
+/*! This is for INP Optimization
+ * Ultra Smart Chunk Processor - Pro Version
+ * Smooth background task processor (ES5 compatible).
+ */
+function ultraSmartChunk(tasks, processFn, options) {
+    options = options || {};
+    var minTimeRemaining = options.minTimeRemaining || 8;
+    var fallbackDelay = options.fallbackDelay || 16;
+    var baseBatchSize = options.batchSize || 10;
+    var maxBatchSize = options.maxBatchSize || 50;
+
+    var index = 0;
+    var totalTasks = tasks.length;
+    var useIdleCallback = typeof requestIdleCallback === 'function';
+    var adaptiveBatchSize = baseBatchSize;
+    var isError = false;
+    function processBatch(deadline) {
+        var shouldYield = false;
+        var processed = 0;
+
+        while (index < totalTasks && !shouldYield && !isError) {
+            try {
+                processFn(tasks[index], index);
+                index++;
+                processed++;
+
+                if (useIdleCallback) {
+                    shouldYield = deadline.timeRemaining() < minTimeRemaining;
+                } else {
+                    shouldYield = (processed >= adaptiveBatchSize);
+                }
+            } catch (error) {
+                // Error processing chunk - silently handled
+                isError = true;
+            }
+        }
+
+        if (!useIdleCallback && processed < adaptiveBatchSize && adaptiveBatchSize < maxBatchSize) {
+            adaptiveBatchSize += 5;
+        }
+
+        if (index < totalTasks) {
+            scheduleNextBatch();
+        }
+    }
+
+    function scheduleNextBatch() {
+        if (useIdleCallback) {
+            requestIdleCallback(processBatch, { timeout: fallbackDelay });
+        } else {
+            setTimeout(function() {
+                processBatch({ timeRemaining: function() { return fallbackDelay; } });
+            }, fallbackDelay);
+        }
+    }
+
+    scheduleNextBatch();
+}
+
+/**
+ * Handles chat window history state management
+ * @param {boolean} isChatClosed - Whether chat is currently closed
+ * @param {*} forceOpen - Force open parameter
+ */
+function handleChatHistoryState(isChatClosed, forceOpen) {
+    //var isUILPPage = window.pageContext && window.pageContext.pageIdentifier === "UILP";
+    //if (isUILPPage) {return;}
+    // Unified logic for all page types (UILP and non-UILP) 
+    if (!window.history.state || !window.history.state.assistant || isChatClosed) {
+        window.history.pushState({ assistant: 'assistant' }, null, null);
+        bindAssistantEvents();
+    } else if (typeof forceOpen === "undefined") {
+        window.history.go(-1);
+        return;
+    }
+}
+
+/**
+ * toggleChatWindow function optimized for smart chunking of heavy iframe reload block
+ */
+function toggleChatWindow(forceOpen, sdc_source, dtFlowObject) {
+    requestAnimationFrame(function () {
+        var chatWindow = document.getElementById("chat-window");
+        var chatContainer = document.getElementById("chat-container");
+        var chatArea = document.getElementsByClassName("chat-area")[0];
+        var primaryChatIcon = document.getElementsByClassName("primary-chat-icon")[0];
+        var chatWeb = document.querySelector('.chatWeb');
+        var isChatClosed = chatWindow.classList.contains("closeChatWindow");
+        var isAutoOpen = chatContainer.classList.contains("auto-open") && autoOpenAA === 1;
+
+        if (isChatClosed) {
+            //stopBodyScrollAsync(); // Use async version for better INP
+            window.manageScroll = true;
+            setTimeout(function() {  
+                if (isAutoOpen && forceOpen === 2) {
+                    gaTrackingPEQ("Auto_Open");
+                    trackDelayedRecommendation("Auto_Open", dtFlowObject);
+                } else if (isAbroad) {
+                    trackDelayedRecommendation("Clicked", JSON.stringify(saLncFlowObj));
+                }
+                if (dtFlowObject === undefined) {
+                    trackShikshaGPTClickEvent();
+                }
+            }, 0);
+        } else {
+            //enableBodyScrollAsync();
+            window.manageScroll = false;
+            if (isAutoOpen) {
+                if (forceOpen !== 'HalfClosed-POPUP') {
+                    setTimeout(function() { 
+                        gaTrackingPEQ("Half_Close");
+                        trackDelayedRecommendation("Half_Close", dtFlowObject);
+                    }, 0);
+                    // if (_DTFLOWOBJECT && _DTFLOWOBJECT.stage === "delayedChatReco" && !isAbroad) {
+                    //     //return handlePostCloserDRC();
+                    // }
+                }
+            } else if (autoOpenAA === 1) {
+                setTimeout(function() {
+                    gaTrackingPEQ("Full_Close");
+                    trackDelayedRecommendation("Full_Close", dtFlowObject);
+                }, 0);
+            } else if (isAbroad) {
+                setTimeout(function() {
+                    trackDelayedRecommendation("Chat_Closed", JSON.stringify(saLncFlowObj));
+                }, 0);
+            }
+        }
+
+        if (typeof event !== "undefined") event.stopPropagation();
+
+        // Use the new function for history state management
+        handleChatHistoryState(isChatClosed, forceOpen);
+
+        closeChatPrompt(true);
+        handlePullToRefresh();
+
+        if (forceOpen === 1) {
+            chatWindow.classList.remove("closeChatWindow");
+            primaryChatIcon.classList.add("hide", "noAnimation");
+        } else {
+            chatWindow.classList.toggle("closeChatWindow");
+            primaryChatIcon.classList.toggle("hide");
+            primaryChatIcon.classList.add("noAnimation");
+        }
+
+        var dtFlow = forceOpen === 2;
+        var anaFlow = forceOpen === 3;
+
+        handleCommonPopUpTriggers();
+
+        // ---------------------------------------------
+        // UltraSmartChunk used for heavy iframe reload block
+        // ---------------------------------------------
+        var tasks = [
+            function() {
+                var openAssistantQuery = window.openSearchedString 
+                    ? encodeURIComponent(btoa(encodeURIComponent(window.openSearchedString))) 
+                    : "";
+                delete window.openSearchedString;
+                window._openAssistantQuery = openAssistantQuery;
+            },
+            function() {
+                var dtFlowData = dtFlowObject 
+                    ? encodeURIComponent(btoa(encodeURIComponent(dtFlowObject))) 
+                    : "";
+                window._dtFlowData = dtFlowData;
+            },
+            function() {
+                var urlParams = new URLSearchParams(window.location.search);
+                window._counsellorParam = urlParams.has("counsellorData") 
+                    ? "counsellor=" + urlParams.get("counsellorData") 
+                    : "";
+                window._sdc_source_param = sdc_source 
+                    ? "&sdc_source=" + sdc_source 
+                    : (urlParams.has("sdc_source") ? "&sdc_source=" + urlParams.get("sdc_source") : "");
+            },
+            function() {
+                var newSrc = "/common/ChatPlugin/chatBox?t=" + encodeURIComponent(btoa(encodeURIComponent(document.title))) +
+                    "&dtFlowData=" + window._dtFlowData + "&autoOpenAA=" + autoOpenAA + 
+                    "&openAssistantQuery=" + window._openAssistantQuery + "&dtFlow=" + dtFlow + 
+                    "&anaFlow=" + anaFlow + "&" + window._counsellorParam + window._sdc_source_param + "&isAbroad=" + isAbroad;
+                
+                chatArea.innerHTML = "";
+                var iframe = document.createElement("iframe");
+                iframe.name = "chatbotIframe";
+                if(window.ENV == "development") newSrc = "http://localshiksha.com" + newSrc;
+                iframe.src = newSrc;
+                iframe.frameBorder = "0";
+                iframe.style = "overflow:hidden;height:100%;width:100%;";
+                chatArea.appendChild(iframe);
+            },
+            function() {
+                setCookie("SAinit", 2, 3600, "seconds");
+                hideChatNotification();
+            }
+        ];
+
+        function getDtFlowObject(key, data) {
+            var obj = typeof data === 'string' ? JSON.parse(data) : data || {};
+            return ['AnaTaggedFAQ', 'SRP', 'StickyPills'].indexOf(key) === -1 ? buildDtFlowObject(obj,key) : obj;
+        }
+        var actualObj = getDtFlowObject(sdc_source, dtFlowObject);
+        var gptTasks = [
+            function() {
+                var postData = {
+                    dtFlow:dtFlow,
+                    dtFlowObject: actualObj,
+                    pageContext:window.pageContext
+                }  
+                var gptSrc = '/common/ChatPlugin/shikshaGPTBox?data='+ btoa(unescape(encodeURIComponent(JSON.stringify(postData))));
+                chatArea.innerHTML = "";
+                var iframe = document.createElement("iframe");
+                iframe.name = "chatbotIframe";
+                if(window.ENV == "development") gptSrc = "http://localshiksha.com" + gptSrc;
+                iframe.src = gptSrc;
+                iframe.style = "overflow:hidden;height:100%;width:100%;border:0";
+                chatArea.appendChild(iframe);
+            }
+        ]
+
+        ultraSmartChunk((isGPTAvailable && !isAbroad) ? gptTasks : tasks, function(taskFn) {
+            taskFn();
+        });
+
+    });
+
+    setTimeout(callChatInnerFunction, 0);
+}
+/**END Here */
+function buildDtFlowObject(dtfObj,key) {
+    var dtFlowObject = {};
+    if (dtfObj.peqStage !== undefined) {
+        dtFlowObject.examPhaseData = dtfObj;
+    } else if (dtfObj.stage === "delayedChatReco") {
+        dtFlowObject.listingsData = dtfObj;
+    } else {
+        dtFlowObject.sdc_source = key;
+    }
+    return dtFlowObject;
+}
+
+function callChatInnerFunction() {
+    var chatIframe = document.querySelector("iframe[name='chatbotIframe']");
+    if (chatIframe && chatIframe.contentWindow) {
+        try {
+            var chatWindow = chatIframe.contentWindow;
+            // Only access if same-origin
+            if (chatWindow && chatWindow.freezeScreenForIOS && typeof chatWindow.freezeScreenForIOS === "function") {
+                chatWindow.freezeScreenForIOS(false);
+            }
+        } catch (e) {
+            // Cross-origin access error, safely ignore
+        }
+    }
+}
+
+
+
+function handlePullToRefresh() {
+    var chatWindow = document.getElementById("chat-window");
+
+    // Check if WebView is defined and has the required methods
+    if (typeof window.WebView === "undefined" ||
+        typeof window.WebView.disablePullToRefresh !== "function" ||
+        typeof window.WebView.enablePullToRefresh !== "function") {
+        return;
+    }
+
+    if (chatWindow && chatWindow.classList.contains("closeChatWindow")) {
+        window.WebView.disablePullToRefresh();
+    } else {
+        window.WebView.enablePullToRefresh();
+    }
+}
+
+
+var url = window.location.href;
+var urlFromAssistant = url.includes("isource");
+var hasAnswerKey = url.includes("sakey");
+var recoMailerLanding = url.includes("utm_campaign=DetailedRecommendationMailer");
+
+var SAinit = getCookie("SAinit");
+var noAnimationClass = (SAinit == 2 || urlFromAssistant || recoMailerLanding) ? "noAnimation" : "";
+
+var today = new Date();
+var curHr = today.getHours();
+
+var dayGreeting = curHr < 12 ? "Good morning" :
+                  curHr < 17 ? "Good afternoon" : 
+                               "Good evening";
+
+var isAbroad = typeof window.isAbroad !== "undefined" ? window.isAbroad : false;
+
+
+var getExperimentData = function() {
+    var Data = {};
+    var logo = '<svg class="primary-chat-icon-svg" width="53px" height="53px" viewBox="0 0 53 53" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">' +
+          '<title>ShikshaGPT</title>' +
+          '<g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">' +
+          '<g id="Group-20-Copy" transform="translate(1.000000, 1.000000)">' +
+          '<g id="Group-10-Copy-4" fill="#0077F5" stroke="#FFFFFF" stroke-width="2">' +
+          '<g id="Group-2-Copy-2">' +
+          '<g id="Group">' +
+          '<path d="M25.2937869,50.5875738 C39.2631596,50.5875738 50.5875738,39.2631596 50.5875738,25.2937869 C50.5875738,11.3244141 39.2631596,0 25.2937869,0 C11.3244141,0 0,11.3244141 0,25.2937869 C0,30.6199603 1.64623766,35.5616343 4.45764364,39.6377395 C5.16511619,40.6634656 5.06469055,43.2120777 4.15636674,47.2835758 L4.15633157,47.283568 C4.03607246,47.822621 4.37557202,48.3570991 4.91462506,48.4773582 C5.04643992,48.5067652 5.18284554,48.5091678 5.31561424,48.484421 C10.0430786,47.6032693 13.0311115,47.4651481 14.2797129,48.0700574 C17.6092099,49.683097 21.3458724,50.5875738 25.2937869,50.5875738 Z" id="Oval-Copy-15"></path>' +
+          '</g>' +
+          '</g>' +
+          '</g>' +
+          '</g>' +
+          '<path d="M24.1118924,14.6724451 L31.6830934,14.6724451 C31.9592358,14.6724451 32.1830934,14.8963027 32.1830934,15.1724451 C32.1830934,15.2748144 32.1516716,15.3747169 32.0930733,15.4586557 L27.6485867,21.8251234 C27.490517,22.051549 27.5459304,22.3632441 27.772356,22.5213138 C27.8562948,22.5799122 27.9561973,22.6113339 28.0585666,22.6113339 L31.5609961,22.6113339 C31.8371385,22.6113339 32.0609961,22.8351915 32.0609961,23.1113339 C32.0609961,23.2299446 32.0188303,23.3446927 31.9420302,23.4350822 L20.2197258,37.2315966 C20.0409245,37.442036 19.7253827,37.4676837 19.5149433,37.2888824 C19.342621,37.1424676 19.290014,36.8986223 19.3866435,36.6941839 L23.4363584,28.1262302 C23.5543619,27.8765709 23.4476338,27.5785212 23.1979745,27.4605177 C23.1311711,27.4289425 23.0581999,27.4125658 22.9843102,27.4125658 L19.4045605,27.4125658 C19.1284181,27.4125658 18.9045605,27.1887082 18.9045605,26.9125658 C18.9045605,26.8488168 18.9167513,26.7856559 18.9404761,26.7264861 L23.647808,14.9863653 C23.7238407,14.7967393 23.9075911,14.6724451 24.1118924,14.6724451 Z" id="Path-4" fill="#FFFFFF"></path>' +
+          '</g>' +
+          '</g>' +
+          '</svg>';
+    var experimentName = getCookie("experimentName");
+    if(experimentName && experimentName == "shikshaGPT"){
+        // Use sessionStorage to persist the experiment icon selection per session
+        var expIconKey = "expIconVariant";
+        var expIconVariant = sessionStorage.getItem(expIconKey);
+
+        if (expIconVariant === null) {
+            // Randomly assign variant and store in sessionStorage
+            expIconVariant = Math.random() < 0.5 ? "exp" : "default";
+            sessionStorage.setItem(expIconKey, expIconVariant);
+        }
+
+        if (expIconVariant === "exp") {
+            logo = '<div class="EXPchat-icon">' +
+                '<div class="EXPinner-circle">' +
+                    '<div class="EXPeye"></div>' +
+                    '<div class="EXPeye"></div>' +
+                '</div>' +
+                '<div class="EXPstatus"></div>' +
+                '</div>';
+        }
+        Data.expIconVariant = expIconVariant;
+    }
+    Data.logo = logo;
+    Data.experimentName = experimentName;
+    return Data;
+}
+
+var dataConfig = isAbroad ? {
+    heading: "Shiksha Abroad Counsellor",
+    logo: '<svg width="50" height="50" viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+          '<title>Shiksha Abroad Counsellor</title>' +
+          '<circle cx="25" cy="25" r="25" fill="url(#paint0_linear_262_490)"/>' +
+          '<path d="M32 15H23L18 28H23L19.5 38L32 23H27.5L32 15Z" fill="white"/>' +
+          '<defs>' +
+          '<linearGradient id="paint0_linear_262_490" x1="25" y1="0" x2="25" y2="50" gradientUnits="userSpaceOnUse">' +
+          '<stop stop-color="#02B18A"/>' +
+          '<stop offset="1" stop-color="#008489"/>' +
+          '</linearGradient>' +
+          '</defs>' +
+          '</svg>',
+    headerImage: '<img role="presentation" src="/public/images/SA_logoSmall.svg">'
+} : isGPTAvailable ? {
+    heading: "ShikshaGPT", 
+    logo: getExperimentData().logo,
+    headerImage: '<span class="svg"><img role="presentation" width="16" height="28" src="https://images.shiksha.ws/public/images/shikshaGPT/shikshaGPT_PNGIcon.png"></span>'
+} : {
+    heading: "Shiksha Counsellor",
+    logo: '<svg class="primary-chat-icon-svg" width="53px" height="53px" viewBox="0 0 53 53" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">' +
+          '<title>Shiksha Counsellor</title>' +
+          '<g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">' +
+          '<g id="Group-20-Copy" transform="translate(1.000000, 1.000000)">' +
+          '<g id="Group-10-Copy-4" fill="#0077F5" stroke="#FFFFFF" stroke-width="2">' +
+          '<g id="Group-2-Copy-2">' +
+          '<g id="Group">' +
+          '<path d="M25.2937869,50.5875738 C39.2631596,50.5875738 50.5875738,39.2631596 50.5875738,25.2937869 C50.5875738,11.3244141 39.2631596,0 25.2937869,0 C11.3244141,0 0,11.3244141 0,25.2937869 C0,30.6199603 1.64623766,35.5616343 4.45764364,39.6377395 C5.16511619,40.6634656 5.06469055,43.2120777 4.15636674,47.2835758 L4.15633157,47.283568 C4.03607246,47.822621 4.37557202,48.3570991 4.91462506,48.4773582 C5.04643992,48.5067652 5.18284554,48.5091678 5.31561424,48.484421 C10.0430786,47.6032693 13.0311115,47.4651481 14.2797129,48.0700574 C17.6092099,49.683097 21.3458724,50.5875738 25.2937869,50.5875738 Z" id="Oval-Copy-15"></path>' +
+          '</g>' +
+          '</g>' +
+          '</g>' +
+          '</g>' +
+          '<path d="M24.1118924,14.6724451 L31.6830934,14.6724451 C31.9592358,14.6724451 32.1830934,14.8963027 32.1830934,15.1724451 C32.1830934,15.2748144 32.1516716,15.3747169 32.0930733,15.4586557 L27.6485867,21.8251234 C27.490517,22.051549 27.5459304,22.3632441 27.772356,22.5213138 C27.8562948,22.5799122 27.9561973,22.6113339 28.0585666,22.6113339 L31.5609961,22.6113339 C31.8371385,22.6113339 32.0609961,22.8351915 32.0609961,23.1113339 C32.0609961,23.2299446 32.0188303,23.3446927 31.9420302,23.4350822 L20.2197258,37.2315966 C20.0409245,37.442036 19.7253827,37.4676837 19.5149433,37.2888824 C19.342621,37.1424676 19.290014,36.8986223 19.3866435,36.6941839 L23.4363584,28.1262302 C23.5543619,27.8765709 23.4476338,27.5785212 23.1979745,27.4605177 C23.1311711,27.4289425 23.0581999,27.4125658 22.9843102,27.4125658 L19.4045605,27.4125658 C19.1284181,27.4125658 18.9045605,27.1887082 18.9045605,26.9125658 C18.9045605,26.8488168 18.9167513,26.7856559 18.9404761,26.7264861 L23.647808,14.9863653 C23.7238407,14.7967393 23.9075911,14.6724451 24.1118924,14.6724451 Z" id="Path-4" fill="#FFFFFF"></path>' +
+          '</g>' +
+          '</g>' +
+          '</svg>',
+    headerImage: '<img role="presentation" src="https://images.shiksha.ws/pwa/public/images/icons/shk_38x38.png">'
+};
+
+
+var chatWebClass = isAbroad ? "chatWebSAStyle" : ((isGPTAvailable && getExperimentData().expIconVariant == "exp") ? "exp" : "");
+var chatPromptClass = isAbroad ? "saChat--prompt" : ((isGPTAvailable && getExperimentData().expIconVariant == "exp") ? "exp" : "");
+var tagRemoveEnable = isAbroad ? "" : (isGPTAvailable ? "&nbsp;" : "&nbsp;");
+var globalChatVersion = isAbroad ? "abroadVersion" : (isGPTAvailable ? "gptVersion" : "assistantVersion");
+var chatHeaderClass = isAbroad ? "saChatHeader" : (isGPTAvailable ? "chatGPTHeader" : "chatHeader");
+
+
+var chathtml = '<style>  ' +
+    '#chat-container{ ' +
+    '   position: absolute; ' +
+    '   z-index: 9701;' +
+    ' } ' +
+    '.primary-chat-icon{ ' +
+    '      position: fixed; ' +
+    '      right: 60px; ' +
+    '      bottom: 65px; ' +
+    '      border-radius: 50%; ' +
+    '      font-family: arial; ' +
+    '      text-align: center; ' +
+    '      font-size: 16px; ' +
+    '      width: 42px; ' +
+    '      height: 42px; ' +
+    '      cursor: normal; ' +
+    '      box-shadow: 2px 4px 11px 0 rgba(0,0,0,0.27); ' +
+    '    } ' +
+    '.chat-prompt-postion ~ .primary-chat-icon { ' +
+    '      bottom: 130px; ' +
+    '    } ' +
+    '.saChat--prompt ~ .primary-chat-icon { ' +
+    '      z-index: 99999; ' +
+    '    } ' +
+    '.primary-chat-icon:hover{ ' +
+    '      cursor: pointer; ' +
+    '    } ' +
+    '    .chat-box{ ' +
+    '      position: fixed; ' +
+    '      z-index: 99999999; ' +
+    '      height: calc(100% - 100px); ' +
+    '      width: 410px; ' +
+    '      box-sizing: border-box; ' +
+    '      right: 20px; ' +
+    '      bottom: 0px; ' +
+    '      background: #fff; ' +
+    '      box-shadow: 4px -6px 19px -2px #908585; ' +
+    '      border-radius: 8px 8px 0 0; ' +
+    '      transform: scale(1); ' +
+    '      transition: transform .15s linear; ' +
+    '      transform-origin: bottom right 150px; ' +
+
+    '    } ' +
+    '    .closeChatWindow{ ' +
+    '      transform: scale(0); ' +
+    '    } ' +
+    '.chat-area{ ' +
+    '  height: calc(100% - 45px); ' +
+    '  box-sizing: border-box; ' +
+    '  background-color: #fafafa; ' +
+    '  } ' +
+    '    .primary-chat-icon.hide {display: none;} ' +
+    '    .primary-chat-icon.hide-chat-icon {display: none;} ' +
+    '    .chat--prompt.hide {transform: scale(0)} ' +
+    '.chat--prompt.saChat--prompt {' +
+    'background:#fff;' +
+    'border: 1px solid #008489;' +
+    'min-width:229px;' +
+    'bottom:85px;' +
+    'right:108px;' +
+    'border-top-left-radius:14px;' +
+    'border-top-right-radius:14px;' +
+    'border-bottom-left-radius:14px;' +
+    'border-bottom-right-radius:4px;' +
+    'color:#4a4a4a;' +
+    'z-index:99999;' +
+    'min-height:auto' + '}' +
+    '.chat--prompt.saChat--prompt.chat-prompt-postion {' +
+    'transform:translate(5px, -65px);' +
+    'transition:all .3s ease-in-out;' + '}' +
+    '.feedback_prompt.hide {transform: scale(0)} ' +
+    '@media only screen and (max-width: 767px) { ' +
+    '.primary-chat-icon{ ' +
+    '    transition:all 600ms cubic-bezier(0.175, 0.885, 0.32, 1); ' +
+    '    right:21px !important; ' +
+    '    bottom: 110px; ' +
+    '   }' +
+    '.EXPchat-icon{' +
+    '    transform:scale(1)' +
+    ' }' +
+    '#chat-container .chat--prompt.saChat--prompt{ ' +
+    '    right:71px; ' +
+    '    bottom:83px; ' +
+    '   }' +
+    '  .chat-box{ ' +
+    '    width: 100% !important; ' +
+    '    height: 100% !important; ' +
+    '    right: 0; ' +
+    '    left: 0; ' +
+    '    top: 0; ' +
+    '    bottom:0; ' +
+    '    max-height: inherit; ' +
+    '    z-index: 9999; ' +
+    '    transform-origin: bottom right 0px; ' +
+    '  } ' +
+    '#chat-container{ ' +
+    '   position: absolute; ' +
+    '   z-index: 9701;' +
+    '   height: 100%;' +
+    ' } ' +
+    '.saChat-container{ ' +
+    '   z-index: 111112 !important;' +
+    ' } ' +
+    ' ' +
+    '#chat-container .chat--prompt, #chat-container .feedback_prompt{ ' +
+    '    right: 17px; ' +
+    '    bottom:103px; ' +
+    '    min-width: 200px; ' +
+    '  } ' +
+    ' ' +
+    '#chat-container .chat--prompt-col .chatWeb:before, #chat-container .chat--prompt-col .chatWeb:after{ ' +
+    '    top: 1px; ' +
+    '    left: -1px; ' +
+    '  } ' +
+    ' ' +
+    '  .conversation-area{ ' +
+    '    height: calc(100% - 45px); ' +
+    '  } ' +
+    '  .chat-window{ ' +
+    '    height: 100%; ' +
+    '  } ' +
+    '  .chat-area{ ' +
+    '    height: calc(100% - 45px); ' +
+    '  } ' +
+    ' .chatWeb:before, .chatWeb:after{' +
+    '     height:42px !important;' +
+    '     width:42px !important;' +
+    ' }' +
+    ' .primary-chat-icon-svg{' +
+    '     height: 42px;' +
+    '     width: 42px;' +
+    ' }' +
+    ' b#chatnotification{' +
+    '     right: -6px !important;' +
+    '     top: -4px !important;' +
+    ' }' +
+    ' .mobile #chat-container.auto-open.delayedRecomendation .chat-box{ ' +
+    '    height: 60%!important; ' +
+    ' } ' +
+    '} ' +
+    '.chatWeb { z-index: 9999;-webkit-transform: translate(-50%, -50%, 0); transform: translate(-50%, -50%, 0);}  ' +
+    '.chatWeb *{pointer-events: none;}  ' +
+    '.chatWeb:before, .chatWeb:after {' +
+    '  content: "";' +
+    '  position: absolute;' +
+    '  width: 52px;' +
+    '  height: 52px;' +
+    '  top: 0px;' +
+    '  left: 0px;' +
+    '  border-radius: 50%;' +
+    '  box-sizing: border-box;' +
+    '  z-index: -1;' +
+    '  background:#0077f5;' +
+    '}' +
+    '.exp.chatWeb:before, .exp.chatWeb:after{' +
+    '  background: #673AB7' +
+    '}' +
+    '.chatWebSAStyle:after,.chatWebSAStyle:before{' +
+    'background:#008b6c;' +
+    'width:50px !important;' +
+    'height:50px !important;' +
+    '}' +
+    '.chatWebSAStyle b#chatnotification{' +
+    'display:none' +
+    '}' +
+    '.chatWeb.noAnimation{' +
+    ' box-shadow: none;' +
+    '}' +
+    '.chatWeb.noAnimation.chatWebGPTStyle,.chatWeb.chatWebGPTStyle{' +
+    '    box-shadow: 0px 12px 40px 0px #1018403D;' +
+    '}'+
+    '.chatWeb:before {' +
+    '  -webkit-animation: smallPulse 6s ease-out infinite; animation: smallPulse 6s ease-out infinite;' +
+    '  will-change: transform, opacity;' +
+    '}' +
+    '.noAnimation:after,.exp.noAnimation:after  {' +
+    '  -webkit-animation: none !important; animation: none !important; border: none; background:none;' +
+    '}  ' +
+    '.noAnimation:before,.exp.noAnimation:before {' +
+    '  -webkit-animation: none !important; animation: none !important; border: none; background:none;' +
+    '}  ' +
+    '.chatWeb:after {' +
+    '  -webkit-animation: largePulse 6s ease-out infinite; animation: largePulse 6s ease-out infinite;' +
+    '  will-change: transform, opacity;' +
+    '}  ' +
+    '@-webkit-keyframes smallPulse {' +
+    '  from {' +
+    '    -webkit-transform: scale(0.75);' +
+    '            transform: scale(0.75);' +
+    '    opacity: 1;' +
+    '  }' +
+    '  95%, 100% {' +
+    '    -webkit-transform: scale(1.5);' +
+    '            transform: scale(1.5);' +
+    '    opacity: 0;' +
+    '  }' +
+    '}' +
+    '' +
+    '@keyframes smallPulse {' +
+    '  from {' +
+    '    -webkit-transform: scale(0.75);' +
+    '            transform: scale(0.75);' +
+    '    opacity: 1;' +
+    '  }' +
+    '  95%, 100% {' +
+    '    -webkit-transform: scale(1.5);' +
+    '            transform: scale(1.5);' +
+    '    opacity: 0;' +
+    '  }' +
+    '}' +
+    '@-webkit-keyframes largePulse {' +
+    '  from {' +
+    '    -webkit-transform: scale(0.75);' +
+    '            transform: scale(0.75);' +
+    '    opacity: 1;' +
+    '  }' +
+    '  to {' +
+    '    -webkit-transform: scale(2);' +
+    '            transform: scale(2);' +
+    '    opacity: 0;' +
+    '  }' +
+    '}' +
+    '@keyframes largePulse {' +
+    '  from {' +
+    '    -webkit-transform: scale(0.75);' +
+    '            transform: scale(0.75);' +
+    '    opacity: 1;' +
+    '  }' +
+    '  to {' +
+    '    -webkit-transform: scale(2);' +
+    '            transform: scale(2);' +
+    '    opacity: 0;' +
+    '  }' +
+    '} ' +
+    '.auto-open .header-top-left-image {' +
+    '    margin-left: 5px;' +
+    '}' +
+    ' #chat-container.auto-open .chat-box{ ' +
+    '    height: 45% !important; ' +
+    '    top: auto; ' +
+    '    border-radius: 0; ' +
+    '  } ' +
+    ' #chat-container.auto-open.delayedRecomendation .chat-box{ ' +
+    '    height: calc(100% - 100px)!important; ' +
+    '  } ' +
+    '  #chat-container.auto-open .chat-box .action-box{ ' +
+    '    background-color:initial ' +
+    '  } ' +
+    '  #chat-container.auto-open .chat-box .action-box .minimize-me{ ' +
+    '    color:#333; ' +
+    '  } ' +
+    '  .auto-open .action-box .head2, .auto-open .action-box .bot-status{ ' +
+    '    color:#fff; display: none;' +
+    '  } ' +
+    '  .action-box .head3 {display: none; } '+
+    ' .auto-open .action-box .head3{ ' +
+    '      display: block; ' +
+    '  } ' +
+    ' ' +
+    '#chat-container.auto-open{ ' +
+    '   height: 33%;' +
+    ' } ' +
+    '.header-top-left-image { ' +
+    '    width: 34px; ' +
+    '    height: 34px; ' +
+    '    border-radius: 32px; ' +
+    '    margin-right: 8px; ' +
+    '    overflow: hidden; ' +
+    '    display: inline-block; ' +
+    '    float: left; ' +
+    '} ' +
+    '.header-top-left-image img{ ' +
+    '  width: 100%; ' +
+    '    height: 100%; ' +
+    '    object-fit: contain; ' +
+    '} ' +
+    '.auto-open .action-box{' +
+    '    box-shadow: none;' +
+    '}' +
+    '.action-box{ ' +
+    '      height: 45px; ' +
+    '} ' +
+    '.action-box { ' +
+    '    line-height: 22px; ' +
+    '    padding: 7px; ' +
+    '    box-sizing: border-box; ' +
+    '    background-color: #008489; ' +
+    '    font-size: 16px; ' +
+    '    color: #fff; ' +
+    '    font-weight: 600; ' +
+    '    position: relative; ' +
+    '    box-shadow: 0 2px 2px 0 rgba(0,0,0,0.12); ' +
+    '    border-radius: 8px 8px 0 0;         ' +
+    '} ' +
+    '.gptVersion .action-box { '+
+    '    background: #fff; '+
+    '    color: #2F1238; '+
+    '    display: flex;'+
+    '    align-items: center;'+
+    '    padding-left: 10px;'+
+    '} '+
+    '.gptVersion .header-top-left-image{'+
+    '    width: auto;'+
+    '}'+
+    '.gptVersion .bot-status {'+
+    '    display: none;'+
+    '}'+
+    '.gptVersion .head2 {'+
+    '    font-weight: 700;'+
+    '    font-size: 16px;'+
+    '    line-height: 20px;'+
+    '}'+
+    '.bot-status{ ' +
+    '    font-size: 9px; ' +
+    '    display: block; ' +
+    '    margin: 0; ' +
+    '    line-height: 1; ' +
+    '} ' +
+    '.head2{ ' +
+    'font-size: 16px; ' +
+    'line-height: 16.5pt; ' +
+    '-webkit-box-orient: vertical; ' +
+    '} ' +
+    '.auto-open .minimize-me{' +
+    '    font-size: 26px;' +
+    '}' +
+    '.gptVersion .minimize-me { ' +
+    '   font-size: 28px; ' +
+    '   font-weight: 200; ' +
+    '}'+
+    '.minimize-me { ' +
+    '    display: inline-block; ' +
+    '    padding: 3px 9px; ' +
+    '    position: absolute; ' +
+    '    right: 11px; ' +
+    '    bottom: 8px; font-size:20px; ' +
+    '    touch-action: manipulation; ' +
+    '  } ' +
+    '  .minimize-me:hover{ ' +
+    '    background: rgba(0,0,0,0.2); ' +
+    '    cursor: pointer; ' +
+    '  } ' +
+    '  .minimize-me i{ ' +
+    '    height: 2px; ' +
+    '    width: 14px; ' +
+    '    background-color: #fff; ' +
+    '    display: inline-block; ' +
+    '  } ' +
+    '  .minimize-me.maximize{ ' +
+    '    right: 6px; ' +
+    '  } ' +
+    '  .minimize-me.maximize i{ ' +
+    '    background: none; ' +
+    '    height: 8px; ' +
+    '    width: 8px; ' +
+    '  } ' +
+    '    b#chatnotification {' +
+    '        color: #fff;' +
+    '        font-size: 12px;' +
+    '        background: #f10732;' +
+    '        border-radius: 50%;' +
+    '        width: 20px;' +
+    '        height: 20px;' +
+    '        line-height: 16px;' +
+    '        text-align: center;' +
+    '        position: absolute;' +
+    '        right: -14px;' +
+    '        top: 0px; border:2px solid #fff;' +
+    '        z-index: 5;' +
+    '        transform: scale(0);' +
+    '        transition: all .1s linear;' +
+    '    }' +
+    '    b#chatnotification.on {' +
+    '        transform: scale(1);' +
+    '    }' +
+    '.chat--prompt {' +
+    '    position: fixed;' +
+    '    z-index: 9999;' +
+    '    bottom: 54px;' +
+    '    right: 48px;' +
+    '    min-width: 270px;' +
+    '    background: #0077F5;' +
+    '    border-top-left-radius: 18px;' +
+    '    box-shadow: 0 0 1px 0 rgba(0,0,0,.5), 2px 2px 4px 0 rgba(0,0,0,.27);' +
+    '    border-top-right-radius: 18px;' +
+    '    border-bottom-left-radius: 18px;' +
+    '    border-bottom-right-radius: 28px;' +
+    '    transform: scale(1);' +
+    '    transform-origin: 240px 77px;' +
+    '    border-bottom-right-radius: 28px;' +
+    '    transition: all .2s linear; ' +
+    '    color: #fff; ' +
+    '}' +
+    '' +
+    '.chat--prompt .primary-chat-icon-svg {' +
+    '    position: relative;' +
+    '}' +
+    '' +
+    '.chat--prompt-col {' +
+    '    text-align: left;' +
+    '    position: relative;' +
+    '    padding: 14px 16px;' +
+    '    min-height: 76px;' +
+    '}' +
+    '.saChat--prompt .chat--prompt-col {' +
+    '    min-height: auto;' +
+    '    width: 229px;' +
+    '    height: auto;' +
+    '    padding: 14px 24px 14px 16px;' +
+    '}' +
+    '.saChat--prompt #chat--prompt-data-msg {' +
+    '    display: none;' +
+    '}' +
+    '.chat--prompt-col:hover {' +
+    '    cursor: pointer;' +
+    '}' +
+    '' +
+    '.chat--prompt_close {' +
+    '    position: absolute;' +
+    '    z-index:9;' +
+    '    right: 8px;' +
+    '    font-size: 20px;' +
+    '    cursor: pointer;' +
+    '    top: 3px;' +
+    '    padding: 0 5px;' +
+    '    color: #fff;border-radius: 50%;' +
+    '    touch-action: manipulation;' +
+    '}' +
+    '.saChat--prompt .chat--prompt_close {' +
+    'border: none;' +
+    'color:#000;' +
+    'top:6px;' +
+    '}' +
+    '.chat--prompt_close:hover {' +
+    'border: 1px solid #fff;' +
+    '}' +
+    '.saChat--prompt .chat--prompt_close:hover {' +
+    'border: none;' +
+    '}' +
+    '' +
+    '.chat--prompt-col .primary-chat-icon {' +
+    '    box-shadow: none;' +
+    '    bottom: 41px;' +
+    '    right: 55px;' +
+    '}' +
+    '' +
+    '.chat--prompt-col .chatWeb:before, .chat--prompt-col .chatWeb:after{' +
+    '    top: -10px;' +
+    '    left: -13px;' +
+    '}' +
+    '' +
+    '.chat--prompt-col .primary-chat-icon-svg {' +
+    '    position: absolute;' +
+    '    bottom: 0px;' +
+    '    right: 1px;' +
+    '}' +
+    '' +
+    '.chat--prompt-data strong {' +
+    '    font-size: 13px;' +
+    '    line-height: 15px;' +
+    '    display: inline-block;' +
+    '    max-width: 115px;' +
+    '    overflow: hidden;' +
+    '    white-space: nowrap;' +
+    '    text-overflow: ellipsis;' +
+    '    vertical-align: middle;' +
+    '    margin-right: 20px;' +
+    '}' +
+    '.chat--prompt-data span {' +
+    '    display: inline-block;' +
+    '    line-height: 13px;' +
+    '    font-size: 12px;' +
+    '    vertical-align: middle;' +
+    '}' +
+    '.saChat--prompt .chat--prompt-data span{' +
+    'line-height:16px' +
+    '}' +
+    '.chat--prompt-data {' +
+    '    font-size: 12px;' +
+    '    line-height: 18px;' +
+    '    margin-bottom: 3px;' +
+    '}' +
+    '' +
+    '.prompt-chatboat {' +
+    '    font-size: 14px;' +
+    '    font-weight: 600;' +
+    '    display: inline-block;' +
+    '    color: #fff;' +
+    '    cursor: pointer;' +
+    '}' +
+    'span.svg.shikshaGPTIconBox {'+
+    '    position: relative;'+
+    '    display: flex;'+
+    '}    '+
+    'span.blueStrip {'+
+    '    position: absolute;'+
+    '    white-space: nowrap;'+
+    '    background: #1E61E8;'+
+    '    padding: 8px 40px 8px 16px;'+
+    '    border-radius: 50px;'+
+    '    color: #fff;'+
+    '    font-weight: 600;'+
+    '    font-size: 14px;'+
+    '    right: 0px;'+
+    '    z-index: 0;'+
+    '    opacity: 0;'+
+    '    top:3px;'+
+    '    transform: translateX(10px);'+
+    '    transform-origin: right;'+
+    '}    '+
+    'span.blueStrip.runBlueStrip {'+
+    '    animation: slideEffect 5s linear 1 forwards;'+
+    '    animation-delay: 5.5s;'+
+    '}'+
+    'span.whiteWrap {'+
+    '    width: 42px;'+
+    '    height: 42px;'+
+    '    display: inline-flex;'+
+    '    align-items: center;'+
+    '    justify-content: center;'+
+    '    background: #fff;'+
+    '    border-radius: 100%;'+
+    '    position: relative;'+
+    '    z-index: 3;'+
+    '}'+
+    'span.whiteWrap svg {'+
+    '   animation:rotate 2s linear 0s 1 normal forwards;'+
+    '   transform-origin:50% 50%;'+
+    '   animation-delay: 3s;'+
+    '}'+
+    'span.gradientBox {'+
+    '    position: relative;'+
+    '    width: 48px;'+
+    '    height: 48px;'+
+    '    background: red;'+
+    '    position: absolute;'+
+    '    z-index: 1;'+
+    '    left: -3px;'+
+    '    top: -3px;'+
+    '    border-radius: 100px;'+
+    '    background: linear-gradient(177.18deg, #2771E7 17.29%, #D864F5 40.84%, #FFFFFF 113.11%);'+
+    '    overflow: hidden;'+
+    '    animation: borderFillRotate 2s linear 0s 1 normal forwards;'+
+    '    animation-delay: 3s;'+
+    '}'+
+    '.gradientBox:after {'+
+    '    content: "";'+
+    '    display: block;'+
+    '    background: linear-gradient(to bottom,transparent 0px,white 8px,white 32px);'+
+    '    height: 0px;'+
+    '    width: calc(100% + 6px);'+
+    '    position: absolute;'+
+    '    z-index: 2;'+
+    '    bottom: -4px;'+
+    '    left: -3px;'+
+    '    animation: heightChange 3s linear 0s 1 normal forwards;'+
+    '    animation-delay: 2.5s;'+    
+    '}'+
+    '@keyframes borderFillRotate {'+
+    '    0% {'+
+    '       transform: rotate(0deg);'+
+    '    }'+
+    '    50% {'+
+    '       transform: rotate(180deg);'+
+    '    }'+
+    '    100% {'+
+    '       transform: rotate(360deg);'+
+    '    }'+
+    '}'+
+    '@keyframes heightChange {'+
+    '    0% {'+
+    '       height:0px'+
+    '    }'+
+    '    10% {'+
+    '       height:32px'+
+    '    }'+
+    '    90% {'+
+    '       height:32px'+
+    '    }'+
+    '    100% {'+
+    '       height:0px'+
+    '    }'+
+    '}'+    
+    '@keyframes slideEffect {'+
+    '    0% {'+
+    '       transform: translateX(10px);'+
+    '       opacity:0;'+
+    '    }'+
+    '    10% {'+
+    '       transform: translateX(-16px);'+
+    '       opacity:1;'+
+    '    }'+
+    '    90% {'+
+    '       transform: translateX(-16px);'+
+    '       opacity:1;'+
+    '    }'+
+    '    100% {'+
+    '       transform: translateX(10px);'+
+    '       opacity:0;'+
+    '    }'+
+    '}'+
+    '@keyframes rotate {' +
+        '0% {' +
+            'transform: rotateY(0deg);' +
+        '}' +
+
+        '50% {' +
+            'transform: rotateY(180deg);' +
+        '}' +
+
+        '100% {' +
+            'transform: rotateY(360deg);' +
+        '}' +
+    '}' +       
+    '.saChat--prompt .prompt-chatboat {' +
+    '    display: none;' +
+    '}' +
+    '.feedback_prompt {' +
+    '    position: fixed;' +
+    '    background: #fff;' +
+    '    z-index: 9999;' +
+    '    bottom: 34px;' +
+    '    right: 48px;' +
+    '    min-width: 270px;' +
+    '    border-top-left-radius: 18px;' +
+    '    box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.4);' +
+    '    border-top-right-radius: 6px;' +
+    '    border-bottom-left-radius: 5px;' +
+    '    border-top-left-radius: 5px;' +
+    '    transform: scale(1);' +
+    '    transform-origin: 240px 77px;' +
+    '    border-bottom-right-radius: 28px;' +
+    '    transition: all .2s linear;' +
+    '    color: #fff;' +
+    '}' +
+    '' +
+    '.query_wrapper {' +
+    '    text-align: left;' +
+    '    position: relative;' +
+    '    padding: 12px 12px;' +
+    '    min-height: 76px;' +
+    '}' +
+    '' +
+    'a.close_prompt {' +
+    '    position: absolute;' +
+    '    right: 4px;' +
+    '    font-size: 20px;' +
+    '    cursor: pointer;' +
+    '    top: 3px;' +
+    '    padding: 0 5px;' +
+    '    color: #000;' +
+    '    border-radius: 50%;' +
+    '    border: 1px solid #fff;' +
+    '}' +
+    '' +
+    '.query_title {' +
+    '    color: #000;' +
+    '    font-size: 0.875rem;' +
+    '    font-weight: 600;' +
+    '    margin-right: 14px;' +
+    '}' +
+    '.query_thumbs span {' +
+    '    color: #000;' +
+    '    display: inline-block;' +
+    '    font-size: 0.875rem;' +
+    '    padding-left: 22px;' +
+    '    cursor: pointer;' +
+    '    position: relative;' +
+    '}' +
+    '' +
+    '.thumb_up {' +
+    '    margin-right: 19px;' +
+    '}' +
+    '' +
+    '.thumb_up:before, .thumb_down:before {' +
+    '    position: absolute;' +
+    '    background: url("/public/images/thumbs.svg");' +
+    '    background-position: 0 0;' +
+    '    height: 21px;' +
+    '    width: 20px;' +
+    '    content: "";' +
+    '    left: 0;' +
+    '}' +
+    '' +
+    '.query_thumbs {' +
+    '    margin: 10px 0 0 0;' +
+    '}' +
+    '' +
+    '.thumb_down:before {' +
+    '    background-position: -20px -3px;' +
+    '}' +
+    '.chat--prompt.exp {'+
+    '    background: linear-gradient(138deg, #1E90FF, #8A2BE2, #ffffff);'+
+    '}'+
+    '/*for experiment only - optimized for performance*/'+
+    '.EXPchat-icon {' +
+    '    position: relative;' +
+    '    width: 52px;' +
+    '    height: 52px;' +
+    '    background: linear-gradient(135deg, #1E90FF, #8A2BE2, #ffffff);' +
+    '    border-radius: 50%;' +
+    '    display: flex;' +
+    '    align-items: center;' +
+    '    justify-content: center;' +
+    '    transform-origin: left top;' +
+    '    cursor: pointer;' +
+    '    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25), 0 0 15px rgba(30, 144, 255, 0.4);' +
+    '    transition: transform 0.2s ease;' +
+    '}' +
+    '.EXPinner-circle {' +
+    '    width: 34px;' +
+    '    height: 30px;' +
+    '    background: #fff;' +
+    '    border-radius: 50%;' +
+    '    display: flex;' +
+    '    align-items: center;' +
+    '    justify-content: center;' +
+    '    gap: 6px;' +
+    '    overflow: hidden;' +
+    '}' +
+    '.EXPeye {' +
+    '    width: 8px;' +
+    '    height: 8px;' +
+    '    background: linear-gradient(135deg, #1E90FF, #8A2BE2);' +
+    '    border-radius: 50%;' +
+    '    animation: EXPblink 8s infinite;' + 
+    '    transform-origin: center center;' +
+    '    animation-delay: 3s;' +
+    '    will-change: transform;' +
+    '}' +
+    '@keyframes EXPblink {'+
+    '    0%, 95%, 100% {'+
+    '       transform: scaleY(1);'+
+    '    }'+
+    '    97%, 99% {'+
+    '       transform: scaleY(0.1); '+
+    '    }'+
+    '}'+
+    '.EXPchat-icon::after {' +
+    '    content: "";' +
+    '    position: absolute;' +
+    '    bottom: -3px;' +
+    '    left: 4px;' +
+    '    width: 0;' +
+    '    height: 0;' +
+    '    border-left: 7px solid transparent;' +
+    '    border-right: 7px solid transparent;' +
+    '    border-top: 10px solid #8A2BE2;' +
+    '    transform: rotate(40deg);' +
+    '}' +
+    '.EXPstatus {' +
+    '    position: absolute;' +
+    '    bottom: 4px;' +
+    '    right: 4px;' +
+    '    width: 16px;' +
+    '    height: 16px;' +
+    '    background: #32CD32;' +
+    '    border: 2px solid #fff;' +
+    '    border-radius: 50%;' +
+    '    box-shadow: 0 0 6px rgba(50, 205, 50, 0.7);' +
+    '}'+
+    '@media only screen and (max-width: 767px) { ' +
+    '   .EXPchat-icon{' +
+    '       transform: scale(0.81);' +
+    '   }' +
+    '} ' +
+    '/*-END-*/'+
+    ' </style>' +
+    '<div class="feedback_prompt hide">' +
+    '    <div class="query_wrapper">' +
+    '        <a class="close_prompt" onclick="event.stopPropagation();closeFeedbackPrompt();">×</a>' +
+    '        <div class="query_title">Is this helpful?</div>' +
+    '        <div class="query_thumbs">' +
+    '           <span class="thumb_up" onclick="trackFeedback(\'yes\');">Yes</span>' +
+    '           <span class="thumb_down" onclick="trackFeedback(\'no\');">No</span>' +
+    '        </div>' +
+    '    </div>    ' +
+    '</div>' +
+    '<div class="chat--prompt hide ' + chatPromptClass + '">' +
+    ' <a class="chat--prompt_close" onclick="event.stopPropagation();closeChatPrompt();showChatNotification();">×</a>' +
+    ' <div class="chat--prompt-col" onclick="event.stopPropagation();toggleChatWindow();">' +
+    '<p class="chat--prompt-data">' +
+    '    <span id="chat--prompt-data-span"></span>' + tagRemoveEnable + '<strong id="chat--prompt-data-msg"></strong></p>' +
+    '<a class="prompt-chatboat" onclick="event.stopPropagation();toggleChatWindow();">Ask Now</a>' +
+    '</div>' +
+    '</div>' +
+    '<span class="primary-chat-icon openChat chatWeb ' + chatWebClass + ' ' + noAnimationClass + '" onclick="event.stopPropagation();toggleChatWindow();">' +
+    dataConfig.logo +
+    '<b class="chatnotification" id="chatnotification">2</b>' +
+    '</span>' +
+
+    '<div id="chat-window" class="closeChatWindow  '+ globalChatVersion +'">' +
+    ' <div class="global-chat">' +
+    '    <div class="chat-box">' +
+    '      <div class="action-box '+ chatHeaderClass +'">' +
+    '<div class="header-top-left-image">' + (dataConfig.headerImage) + '</div>' +
+    '<div><span class="head2">' + (dataConfig.heading) + '</span>'+
+    (dataConfig.heading == 'ShikshaGPT' ? '<span class="head3">Shiksha Counsellor</span>' : '' )+
+    '<span class="bot-status" >Online</span></div>' +
+    '        <span class="minimize-me" ontouchend="handleChatTouchEnd(event, 0)" onclick="toggleChatWindowLight(event, 0)"> &times;</span>' +
+    '        ' +
+    '      </div>' +
+    '      <div class="chat-area">' +
+    '      </div>' +
+    '    </div>' +
+    '  </div> ' +
+    '</div>';
+if (!isAbroad) {
+    requestAnimationFrame(showChatBot);
+}
+
+function showChatBot() {  
+
+    function enableMe() {
+        var chatContainer = document.getElementById("chat-container");
+        if (chatContainer && !chatContainer.querySelector('.chat-widget')) {
+            chatContainer.insertAdjacentHTML('beforeend', chathtml);
+        }
+        trackShikshaGPTViews();
+    }
+
+    var experimentName = getCookie("experimentName");
+
+    // Remove this experimentName check when the experiment is over
+    if ((experimentName && experimentName !== "none") || (typeof isAbroad !== "undefined" && isAbroad)) {
+        enableMe();
+    }
+}
+
+function removeChatBotHideClass() {
+    var chatIcon = document.querySelector(".primary-chat-icon");
+    if (chatIcon) {
+        chatIcon.classList.remove("hide-chat-icon");
+    }
+}
+
+function hideChatBot() {
+    var chatIcon = document.querySelector(".primary-chat-icon");
+    if (chatIcon) {
+        chatIcon.classList.add("hide-chat-icon");
+    }
+}
+var openTimer;
+function conditionalOpenWithRepeatTimer(chatPrompt,delay) {
+  var condition = (!document.documentElement.classList.contains('desktop') && document.body.classList.contains("lazyLoad")) || document.documentElement.classList.contains('ui-mobile') || document.body.contains(document.getElementById('wrapperMainForCompleteShiksha'));
+  if (condition) {
+    clearTimeout(openTimer);
+    chatPrompt.classList.remove("hide");
+  } else {
+    clearTimeout(openTimer);
+    openTimer = setTimeout(function(){
+      conditionalOpenWithRepeatTimer(chatPrompt,delay);
+    }, delay);
+  }
+}
+function autoOpenAssistantBubble(name) {
+    requestAnimationFrame(function () {
+        var chatMsg = document.getElementById("chat--prompt-data-msg");
+        var chatSpan = document.getElementById("chat--prompt-data-span");
+        var chatPrompt = document.querySelector(".chat--prompt");
+        if (!chatMsg || !chatSpan || !chatPrompt) return;
+
+        var innerHTMLSpan = "Get Instant Answer to your queries";
+        var innerHTMLMsg = "";
+
+        if (isAbroad) {
+            var chatWindow = document.getElementById("chat-window");
+            if (chatWindow && !chatWindow.classList.contains("closeChatWindow")) return;
+            innerHTMLSpan = "Hey " + name + "! How can we help you with your study abroad journey?";
+        } else if (
+            typeof window.pageContext !== "undefined" &&
+            typeof window.pageContext.extraData !== "undefined" &&
+            typeof window.pageContext.extraData._entityName !== "undefined"
+        ) {
+            innerHTMLSpan = "Ask anything about ";
+            innerHTMLMsg = window.pageContext.extraData._entityName;
+            chatMsg.setAttribute("title", innerHTMLMsg);
+        }
+
+        chatMsg.textContent = innerHTMLMsg;
+        chatSpan.textContent = innerHTMLSpan;
+        //chatPrompt.classList.remove("hide");
+        conditionalOpenWithRepeatTimer(chatPrompt, 5000);
+    });
+}
+
+(function () {
+    var waitForPageContext = 20000;
+    var additionalDelayForBigPages = 10000;
+    var pagesWithAdditionalDelay = ["courseHomePage", "articlePage", "examPageMain"];
+    var eligiblePages = ["UILP"];
+
+    function showFeedbackPrompt() {
+        requestAnimationFrame(function () {
+            var feedbackPrompt = document.querySelector(".feedback_prompt");
+            if (feedbackPrompt) {
+                feedbackPrompt.classList.remove("hide");
+            }
+        });
+    }
+
+    function updateQueryTitle() {
+        requestAnimationFrame(function () {
+            var queryTitle = document.querySelector(".query_title");
+            if (queryTitle) {
+                queryTitle.innerHTML = "Was this college recommendation<br/> helpful ?";
+            }
+        });
+    }
+
+    function showAssistantBubble() {
+        requestAnimationFrame(function () {
+            autoOpenAssistantBubble("");
+            var chatIcon = document.querySelector(".primary-chat-icon");
+            if (chatIcon) {
+                chatIcon.classList.add("noAnimation");
+            }
+        });
+    }
+
+    function executeWithDelay(callback, delay) {
+        setTimeout(callback, delay);
+    }
+
+    if (urlFromAssistant && hasAnswerKey) {
+        executeWithDelay(function () {
+            var saTimeoutDelay = 0;
+            if (window.pageContext && pagesWithAdditionalDelay.indexOf(window.pageContext.pageIdentifier) !== -1) {
+                saTimeoutDelay += additionalDelayForBigPages;
+            }
+
+            executeWithDelay(showFeedbackPrompt, saTimeoutDelay);
+        }, waitForPageContext);
+
+        setCookie("SAinit", 1, 3600, "seconds");
+    } else if (recoMailerLanding) {
+        executeWithDelay(function () {
+            if (window.pageContext && eligiblePages.indexOf(window.pageContext.pageIdentifier) !== -1) {
+                showFeedbackPrompt();
+                updateQueryTitle();
+            }
+        }, waitForPageContext);
+
+        setCookie("SAinit", 1, 3600, "seconds");
+    } else if (!isAbroad && !(SAinit != "" && SAinit == 1) && SAinit != 2) {
+        executeWithDelay(showAssistantBubble, 7500);
+        setCookie("SAinit", 1, 3600, "seconds");
+    }
+
+    if (!isAbroad) {
+        executeWithDelay(showChatNotification, 0);
+    }
+
+
+    executeWithDelay(function addClassToBlue() {
+        var blueStrip = document.querySelector(".blueStrip");
+        if (!blueStrip) return;
+
+        try {
+            if (!sessionStorage.getItem("blueStripShown")) {
+                blueStrip.classList.add("runBlueStrip"); // This class triggers animation
+                sessionStorage.setItem("blueStripShown", "true");
+            }
+        } catch (e) {
+            // SessionStorage not available or blocked - silently handled
+        }
+    }, 100);
+})();
+
+function hideChatNotification() {
+    var chatNotification = document.getElementById('chatnotification');
+    if (chatNotification) {
+        requestAnimationFrame(function () {
+            chatNotification.classList.remove('on');
+        });
+    }
+}
+
+function updateClassInHTMLObject(className, htmlObject, action) {
+    if (!htmlObject) return;
+    requestAnimationFrame(function () {
+        htmlObject.classList[action === "add" ? "add" : "remove"](className);
+    });
+}
+
+function showChatNotification() {
+    var chatIcon = document.querySelector(".primary-chat-icon");
+    var chatNotification = document.getElementById('chatnotification');
+    
+    if (!chatIcon || !chatNotification) return;
+
+    updateClassInHTMLObject("noAnimation", chatIcon, "remove");
+
+    setTimeout(function () {
+        if (!sessionStorage.getItem('isChatMessageNotified')) {
+            sessionStorage.setItem('isChatMessageNotified', 'true');
+
+            requestAnimationFrame(function () {
+                chatNotification.classList.add('on');
+            });
+        }
+
+        updateClassInHTMLObject("noAnimation", chatIcon, "add");
+
+    }, 6000);
+}
+
+function trackFeedback(feedback) {
+    var urlArr = parent.window.location.href.split('?');
+    if (urlArr[1]) {
+        var urlParams = urlArr[1].split('&');
+        var paramLookup = {};
+        var m_id = "";
+        var mailer_id = "";
+
+        // Store parameters in an object to avoid multiple loops
+        for (var i = 0; i < urlParams.length; i++) {
+            var temp = urlParams[i].split('=');
+            if (temp.length > 1) {
+                paramLookup[temp[0]] = temp[1];
+            }
+        }
+
+        if (paramLookup["m_id"]) m_id = paramLookup["m_id"];
+        if (paramLookup["mailer_id"]) mailer_id = paramLookup["mailer_id"];
+
+        if (paramLookup["sakey"]) {
+            var ajaxUrl = "/common/ChatPlugin/captureUserFeedbackOnAnswer/" + 
+                atob(decodeURIComponent(paramLookup["sakey"])) + "/" + JSON.stringify(feedback) + "/assistantLandingPage";
+            sendPostRequest(ajaxUrl);
+        } else if (paramLookup["utm_campaign"] === "DetailedRecommendationMailer" && m_id) {
+            var ajaxUrl = "/common/ChatPlugin/captureUserFeedbackOnMail/" + m_id + "/" + JSON.stringify(feedback) + "/" + mailer_id;
+            sendPostRequest(ajaxUrl);
+        }
+    }
+
+    // Optimize UI update to avoid blocking interactions
+    var feedbackPrompt = document.getElementsByClassName("feedback_prompt")[0];
+    if (feedbackPrompt) {
+        requestAnimationFrame(function() {
+            feedbackPrompt.classList.add("hide");
+        });
+    }
+}
+
+function sendPostRequest(ajaxUrl, queryParamStr, callbackFunc, callBackFuncParam) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', ajaxUrl, true);
+    xhr.withCredentials = true;
+    xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4) {
+            if (typeof callbackFunc === 'function') {
+                requestIdleCallback(function() {
+                    callbackFunc(xhr.responseText, callBackFuncParam);
+                });
+            }
+        }
+    };
+    
+    xhr.send(queryParamStr);
+}
+
+function shouldOpen(dtFlowObject) {
+    return !!(dtFlowObject && (
+        (dtFlowObject.examPhaseData && dtFlowObject.examPhaseData.peqStage) ||
+        (dtFlowObject.listingsData && dtFlowObject.listingsData.stage === 'delayedChatReco') ||
+        (dtFlowObject.studyAbroadData && dtFlowObject.studyAbroadData.stage === 'saLNC')
+    ));
+}
+
+var childPagesWithAutoOpen = ["tagDetailPage", "discussionDetailPage", "questionDetailPage", "courseHomePage", "articleDetailPage", "myShikshaPage", "homePage"];
+var parentPagesWithAutoOpen = ["examPageMain", "UILP"];
+
+function autoOpenAssistant(dtFlowObject) {
+    // Validate dtFlowObject and extract required data
+    var reqOBJ = (dtFlowObject && dtFlowObject.examPhaseData) ? dtFlowObject.examPhaseData :
+        (dtFlowObject && dtFlowObject.studyAbroadData) ? dtFlowObject.studyAbroadData :
+        dtFlowObject.listingsData;
+
+    if (!reqOBJ) {
+        // No valid data found - silently handled
+        return;
+    }
+
+    // The both conditions are for disaster management
+    if (typeof reqOBJ.peqStage !== "undefined" && typeof window.shouldShowPEQ !== "undefined" && !window.shouldShowPEQ) {
+        // PEQ is disabled - silently handled
+        return;
+    }
+
+    if (typeof reqOBJ.stage !== "undefined" && reqOBJ.stage === "delayedChatReco" && typeof window.shouldShowDRC !== "undefined" && !window.shouldShowDRC) {
+        // DRC is disabled - silently handled
+        return;
+    }
+
+    // Store in global object
+    window._DTFLOWOBJECT = reqOBJ;
+
+    autoOpenAA = 1;
+
+    if (autoOpenAA === 1 && shouldOpen(dtFlowObject)) {
+        var timetoOpen = 200; // Short delay to avoid blocking main thread
+
+        var sdc_source = "Assistant_PEQ";
+        var peqGACategory = "";
+
+        if (reqOBJ.peqStage === "predictor") {
+            sdc_source = "Assistant_PEQ_Predictor";
+            peqGACategory = "PEQ_Predictor";
+        } else if (reqOBJ.stage === "delayedChatReco") {
+            sdc_source = "DRC";
+            peqGACategory = "DRC";
+        }
+
+        setTimeout(function () {
+            var rootElement = document.getElementById('root');
+            var chatContainer = document.getElementById("chat-container");
+            var chatWindow = document.getElementById("chat-window");
+
+            // Gracefully handle missing elements without stopping execution
+            // Elements not found - silently handled
+
+            var stopOpeningAA = rootElement && rootElement.classList.contains('disable-scroll') ? 1 : 0;
+
+            if (chatWindow && !chatWindow.classList.contains("closeChatWindow")) {
+                stopOpeningAA = 1;
+                trackDelayedRecommendation("Already_Open", JSON.stringify(reqOBJ));
+            }
+
+            if (!stopOpeningAA && chatContainer) {
+                requestAnimationFrame(function () {
+                    chatContainer.classList.add("auto-open");
+
+                    if (reqOBJ.stage === "delayedChatReco") {
+                        chatContainer.classList.add("delayedRecomendation");
+                        delete localStorage.SASSISTANT_CACHE_DATA; // Removing cache for this flow
+                    } else if (reqOBJ.stage === "saLNC") {
+                        chatContainer.classList.remove("auto-open");
+                        chatContainer.classList.add("delayedRecomendation");
+                    }
+
+                    if (typeof toggleChatWindow === "function") {
+                        toggleChatWindow(2, sdc_source, JSON.stringify(reqOBJ));
+                    } else {
+                        // toggleChatWindow function is missing - silently handled
+                    }
+                });
+            }
+        }, timetoOpen);
+    } else {
+        // shouldOpen() check failed or autoOpenAA is disabled - silently handled
+    }
+}
+
+
+
+function gaTracking(category, action) {
+    if (typeof ga !== "undefined") {
+        var isUserLoggedIn = fetchUserCookieDataForGA();
+        ga('send', {
+            hitType: 'event',
+            eventCategory: category,
+            eventAction: action,
+            eventLabel: isUserLoggedIn ? "Logged_In" : "Not_Logged_In"
+        });
+    }
+}
+
+function sanatizeEventSampling(trackingData) {
+    var samplingThemeList = [
+        "Recommendations", // don't track if theme is delayed recommendation
+        "Registration", // don't track if theme is registration
+    ];
+    var samplingEventList = [
+        "PEQ_Triggered_CE", // don't track if event is peq triggered ce
+        "ChatClosed", // don't track if event is chat closed
+        "ChatTriggered", // don't track if event is chat triggered
+        "PEQ_half_close_CE", // don't track if event is peq half close ce
+        "PEQ_Triggered_BP", // don't track if event is peq triggered bp
+    ];
+    var etSamCookie = getCookie('et_sam');
+
+    if (etSamCookie != "1") {
+        // if et_sam cookie is not present or is 0, return the tracking data as is
+        return trackingData;
+    }
+
+    if (trackingData) {
+        var isSamplingTheme = samplingThemeList.includes(trackingData.theme);
+        var isSamplingEvent = samplingEventList.includes(trackingData.event);
+
+        // if theme or event is in the sampling list, return undefined
+        if (isSamplingTheme || isSamplingEvent) {
+            return undefined;
+        }
+
+        // if theme or event is not in the sampling list, return the tracking data
+        return trackingData;
+    }
+}
+
+function eventTracking(trackingDataDTO) {
+    var sanitizedData = sanatizeEventSampling(trackingDataDTO);
+    if (!sanitizedData || (Array.isArray(sanitizedData) && sanitizedData.length === 0)) return;
+    trackingDataDTO = sanitizedData;
+    var SHIKSHA_TRACK_HOME = "https://track.shiksha.com"; // prod
+    if (typeof window.ENV !== "undefined" && window.ENV !== "production") {
+        SHIKSHA_TRACK_HOME = "https://apisshikshatest.infoedge.com"; // test  
+    }
+    var URI = SHIKSHA_TRACK_HOME + '/trackinggateway/trackingApi/v1/common/info/eventTracking';
+    var postData = [trackingDataDTO];
+
+    setTimeout(function() {
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', URI, true);
+        xhr.withCredentials = true;
+        xhr.setRequestHeader("Content-Type", "application/json; charset=UTF-8");
+        xhr.send(JSON.stringify(postData));
+    },0);
+}
+
+function gaTrackingPEQ(action) {
+    if (typeof gtag !== "undefined") {
+        var isUserLoggedIn = fetchUserCookieDataForGA();
+        var label = isUserLoggedIn ? "Logged_In" : "Not_Logged_In";
+
+        if (window.pageContext &&
+            window.pageContext.extraData &&
+            window.pageContext.extraData._entityName) {
+            label += "_" + window.pageContext.extraData._entityName;
+        }
+
+        setTimeout(function() {
+            gtag('event', peqGACategory, {
+                'event_action': action,
+                'event_label': label
+            });
+        }, 10);
+    }
+
+    if (action === "PEQ_Click") {
+        trackDelayedRecommendation("Chat_Interacted");
+    }
+}
+
+function fetchUserCookieDataForGA() {
+    return (typeof window !== 'undefined' &&
+        window["__UCD__"] &&
+        window["__UCD__"]["userCookieData"]) ? window["__UCD__"]["userCookieData"] : false;
+}
+
+if (window.location.href.indexOf("init_sac=true") !== -1) {
+    setTimeout(function() {
+        var urlParams = new URLSearchParams(window.location.search);
+        var sdc_source =  urlParams.get("sdc_source");
+        toggleChatWindow(2,sdc_source);
+    }, 200);
+}
+
+// Helper function to check if device is mobile
+function isMobileDevice() {
+    // Check for window.deviceType first
+    if (typeof window.deviceType !== 'undefined' && window.deviceType === 'mobile') {
+        return true;
+    }
+    
+    // Check for window.isMobile
+    if (typeof window.isMobile !== 'undefined' && window.isMobile === true) {
+        return true;
+    }
+    
+    // Fallback to existing condition
+    return document.body.clientWidth < 768;
+}
+
+// ✅ Alternative: Async scroll control for even better performance with scroll position preservation
+// Counter-based system to handle multiple calls safely
+var savedScrollPosition = 0;
+var scrollDisableCount = 0;
+
+function stopBodyScrollAsync(){
+    if(isMobileDevice()){
+        // Increment counter for multiple calls
+        scrollDisableCount++;
+        
+        // Only save scroll position on first call
+        if(scrollDisableCount === 1){
+            // Save current scroll position BEFORE applying fixed position
+            savedScrollPosition = window.scrollY;
+            
+            requestAnimationFrame(function() {
+                document.body.classList.add('chat-scroll-disabled');
+                // Set top offset to maintain visual position when using position: fixed
+                document.body.style.top = -savedScrollPosition + 'px';
+            });
+        }
+    }
+}
+
+function enableBodyScrollAsync(){
+    if(isMobileDevice()){
+        // Decrement counter
+        scrollDisableCount = Math.max(0, scrollDisableCount - 1);
+        
+        // Only restore scroll when counter reaches 0 (all layers closed)
+        if(scrollDisableCount === 0){
+            requestAnimationFrame(function() {
+                document.body.classList.remove('chat-scroll-disabled');
+                // Remove the top offset
+                document.body.style.top = '';
+                // Restore scroll position
+                window.scrollTo(0, savedScrollPosition);
+                savedScrollPosition = 0; // Reset for next use
+            });
+        }
+    }    
+}
+
+function trackShikshaGPTViews() {
+    var chatIdentity = isGPTAvailable ? "shikshaGPT" : "Assistant";
+    var chatLabel = chatIdentity+' '+ ((getExperimentData().expIconVariant == "exp") ? 'exp' : 'Chat')+' Viewed';
+    eventTracking({
+        isAbroad: false,
+        widget: chatIdentity,
+        theme: "Chat",
+        category: chatIdentity,
+        event: chatIdentity+'_View',
+        label: chatLabel,
+        pageIdentifier: getPageType(),
+        pageEntityId: (typeof pageContext !== 'undefined') ? pageContext.pageEntityId : 0,
+        childPageIdentifier: getChildPageIdentifier()
+    });
+}
+function trackShikshaGPTClickEvent() {
+    var chatIdentity = isGPTAvailable ? "shikshaGPT" : "Assistant";
+    var chatLabel = chatIdentity+' '+ ((getExperimentData().expIconVariant == "exp") ? 'exp' : 'Chat')+' Clicked';
+    eventTracking({
+        isAbroad: false,
+        widget: chatIdentity,
+        theme: "Chat",
+        category: chatIdentity,
+        event: chatIdentity+'_Click',
+        label: chatLabel,
+        pageIdentifier: getPageType(),
+        pageEntityId: (typeof pageContext !== 'undefined') ? pageContext.pageEntityId : 0,
+        childPageIdentifier: getChildPageIdentifier()
+    });
+}
+
+
+/**New Optimized function */
+function handleChatTouchStart(e, forceOpen) {
+    e.preventDefault(); // stop native scroll/click under iframe
+    e.stopPropagation();
+    toggleChatWindowLight(e, forceOpen);
+}
+
+function handleChatTouchEnd(e, forceOpen) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    //Find iframe with name chatbotIframe and remove from DOM by changing src to empty string
+    setTimeout(function() {
+        toggleChatWindowLight(e, forceOpen);
+    }, 70);
+}
+
+function toggleChatWindowLight(event, forceOpen) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    if(!window.mobileApp){
+        var chatbotIframe = document.querySelector("iframe[name='chatbotIframe']");
+        if (chatbotIframe) {
+            chatbotIframe.src = "";
+        }
+    }
+
+    setTimeout(function() {
+        var chatWindow = document.getElementById("chat-window");
+        var primaryChatIcon = document.getElementsByClassName("primary-chat-icon")[0];
+
+        // Minimal UI toggle (instant feedback)
+        if (forceOpen === 1) {
+            chatWindow.classList.remove("closeChatWindow");
+            primaryChatIcon.classList.add("hide", "noAnimation");
+        } else {
+            chatWindow.classList.toggle("closeChatWindow");
+            primaryChatIcon.classList.toggle("hide");
+            primaryChatIcon.classList.add("noAnimation");
+        }
+        // remove auto-open class from chat-container
+        var chatContainer = document.getElementById("chat-container");
+        if (chatContainer) {
+            chatContainer.classList.remove("auto-open");
+        }
+    }, 50);
+    
+    //enable scroll
+    //enableBodyScrollAsync();
+
+    // Schedule heavy work (analytics, iframe reload, etc.)
+    setTimeout(function() {
+        scheduleChatWindowHeavyTasks(forceOpen);
+    }, 50);
+}
+
+function scheduleChatWindowHeavyTasks(forceOpen, sdc_source, dtFlowObject) {
+    requestAnimationFrame(function () {
+        if ("requestIdleCallback" in window) {
+            requestIdleCallback(function () {
+                runChatWindowHeavy(forceOpen, sdc_source, dtFlowObject);
+            });
+        } else {
+            setTimeout(function () {
+                runChatWindowHeavy(forceOpen, sdc_source, dtFlowObject);
+            }, 10);
+        }
+    });
+}
+
+function runChatWindowHeavy(forceOpen, sdc_source, dtFlowObject) {
+    requestAnimationFrame(function () {
+        var chatWindow = document.getElementById("chat-window");
+        var chatContainer = document.getElementById("chat-container");
+        var isChatClosed = chatWindow.classList.contains("closeChatWindow");
+        var isAutoOpen = chatContainer.classList.contains("auto-open") && autoOpenAA === 1;
+        window.manageScroll = false;
+        if (isAutoOpen) {
+            if (forceOpen !== 'HalfClosed-POPUP') {
+                setTimeout(function() { 
+                    gaTrackingPEQ("Half_Close");
+                    trackDelayedRecommendation("Half_Close", dtFlowObject);
+                }, 0);
+            }
+        } else if (autoOpenAA === 1) {
+            setTimeout(function() {
+                gaTrackingPEQ("Full_Close");
+                trackDelayedRecommendation("Full_Close", dtFlowObject);
+            }, 0);
+        } else if (isAbroad) {
+            setTimeout(function() {
+                trackDelayedRecommendation("Chat_Closed", JSON.stringify(saLncFlowObj));
+            }, 0);
+        }
+
+        // Use the new function for history state management
+        handleChatHistoryState(isChatClosed, forceOpen);
+
+        handlePullToRefresh();
+    });
+    setTimeout(callChatInnerFunction, 0);
+}
+/**END this will be removed after INP experiment */
